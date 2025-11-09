@@ -11,6 +11,9 @@ class GarageBloc extends Bloc<GarageEvent, GarageState> {
 
   GarageBloc() : super(GarageLoading()) {
     on<LoadGarageData>(_onLoadGarageData);
+    on<AddVehicle>(_onAddVehicle);
+    // --- CORRECCIÓN: REGISTRAMOS EL NUEVO EVENTO DE ACTUALIZACIÓN ---
+    on<UpdateVehicle>(_onUpdateVehicle);
   }
 
   Future<void> _onLoadGarageData(
@@ -22,7 +25,34 @@ class GarageBloc extends Bloc<GarageEvent, GarageState> {
       final vehicles = await _garageRepository.getVehicles();
       emit(GarageLoaded(vehicles));
     } catch (e) {
-      emit(GarageError("No se pudieron cargar los vehículos: ${e.toString()}"));
+      emit(GarageError(e.toString()));
+    }
+  }
+
+  Future<void> _onAddVehicle(
+    AddVehicle event,
+    Emitter<GarageState> emit,
+  ) async {
+    try {
+      await _garageRepository.addVehicle(event.vehicle);
+      add(LoadGarageData()); // Recarga la lista
+    } catch (e) {
+      emit(GarageError(e.toString()));
+    }
+  }
+
+  // --- NUEVO MANEJADOR DE EVENTO PARA ACTUALIZAR ---
+  Future<void> _onUpdateVehicle(
+    UpdateVehicle event,
+    Emitter<GarageState> emit,
+  ) async {
+    try {
+      // Le decimos al repositorio que actualice el vehículo
+      await _garageRepository.updateVehicle(event.updatedVehicle);
+      // Recargamos la lista para que la UI refleje los cambios
+      add(LoadGarageData());
+    } catch (e) {
+      emit(GarageError(e.toString()));
     }
   }
 }

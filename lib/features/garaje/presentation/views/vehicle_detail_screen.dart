@@ -1,7 +1,6 @@
 import 'package:proyecto/features/garaje/presentation/data/models/vehicle_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 class VehicleDetailScreen extends StatelessWidget {
   final Vehicle vehicle;
   const VehicleDetailScreen({super.key, required this.vehicle});
@@ -38,6 +37,15 @@ class VehicleDetailScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Column(
                     children: [
+                      ListTile(
+                        leading: const Icon(Icons.pin_outlined),
+                        title: const Text('Placa'),
+                        trailing: Text(
+                          vehicle.plate, // MOSTRANDO LA PLACA
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ),
+                      const Divider(indent: 16, endIndent: 16),
                       ListTile(
                         leading: const Icon(Icons.calendar_today_outlined),
                         title: const Text('Año'),

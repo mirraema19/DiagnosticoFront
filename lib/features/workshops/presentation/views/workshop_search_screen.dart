@@ -39,7 +39,6 @@ class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
               Text('Filtros', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 20),
               const Text('Ordenar por:'),
-              // Aquí irían widgets de filtro más complejos
               const Wrap(
                 spacing: 8.0,
                 children: [
@@ -105,6 +104,7 @@ class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
                   itemCount: workshops.length,
                   itemBuilder: (context, index) {
                     final workshop = workshops[index];
+                    // --- ESTE GESTUREDETECTOR ES EL ÚNICO RESPONSABLE DE LA NAVEGACIÓN ---
                     return GestureDetector(
                       onTap: () {
                         context.push('/workshops/details', extra: workshop);

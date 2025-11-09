@@ -3,7 +3,7 @@ import 'package:proyecto/features/history/data/repositories/history_repository.d
 import 'package:proyecto/features/history/presentation/widgets/history_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:intl/date_symbol_data_local.dart';
+// --- MODIFICACIÓN: La importación de 'intl/date_symbol_data_local.dart' ya no es necesaria aquí ---
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -19,8 +19,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    // Inicializa el formato de fecha en español
-    initializeDateFormatting('es_ES', null);
+    // --- MODIFICACIÓN: Quitamos la línea de initializeDateFormatting de aquí ---
     _historyFuture = _repository.fetchHistory();
   }
 

@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-enum AppointmentStatus { confirmed, completed, cancelled }
+// ESTADOS DE PROGRESO MODIFICADOS
+enum AppointmentStatus { received, in_diagnosis, ready, completed }
 
 class Appointment extends Equatable {
   final String id;

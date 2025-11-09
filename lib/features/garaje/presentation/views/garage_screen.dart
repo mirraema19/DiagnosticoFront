@@ -10,6 +10,7 @@ class GarageScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
+      // Creamos el BLoC aquí para que esté disponible en esta pantalla y las sub-pantallas
       create: (context) => GarageBloc()..add(LoadGarageData()),
       child: Scaffold(
         appBar: AppBar(
@@ -22,46 +23,66 @@ class GarageScreen extends StatelessWidget {
             }
             if (state is GarageLoaded) {
               if (state.vehicles.isEmpty) {
-                return const Center(child: Text('Aún no tienes vehículos.'));
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: state.vehicles.length,
-                itemBuilder: (context, index) {
-                  final vehicle = state.vehicles[index];
-                  return Card(
-                    clipBehavior: Clip.antiAlias,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: InkWell(
-                      onTap: () {
-                        context.push('/garage/details', extra: vehicle);
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            height: 180,
-                            width: double.infinity,
-                            child: Image.asset(
-                              vehicle.imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Center(child: Icon(Icons.directions_car)),
-                            ),
-                          ),
-                          ListTile(
-                            title: Text(
-                              '${vehicle.make} ${vehicle.model}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text('${vehicle.mileage} km'),
-                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          ),
-                        ],
-                      ),
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Text(
+                      'Aún no tienes vehículos. ¡Añade el primero!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
                     ),
-                  );
+                  ),
+                );
+              }
+              return RefreshIndicator(
+                onRefresh: () async {
+                  // Permite al usuario "deslizar para recargar" la lista
+                  context.read<GarageBloc>().add(LoadGarageData());
                 },
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: state.vehicles.length,
+                  itemBuilder: (context, index) {
+                    final vehicle = state.vehicles[index];
+                    return Card(
+                      clipBehavior: Clip.antiAlias,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: InkWell(
+                        onTap: () {
+                          context.push('/garage/details', extra: vehicle);
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: 180,
+                              width: double.infinity,
+                              // --- CORRECCIÓN IMPLEMENTADA ---
+                              // Intenta cargar desde una URL. Si falla, usa una imagen local.
+                              child: Image.network(
+                                vehicle.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Image.asset(
+                                  'assets/civic.jpg', // Imagen local de respaldo
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            ListTile(
+                              title: Text(
+                                '${vehicle.make} ${vehicle.model}',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text('${vehicle.mileage} km'),
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
               );
             }
             if (state is GarageError) {
@@ -70,12 +91,18 @@ class GarageScreen extends StatelessWidget {
             return const Center(child: Text('Algo salió mal.'));
           },
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            context.push('/garage/add');
-          },
-          label: const Text('Añadir Vehículo'),
-          icon: const Icon(Icons.add),
+        floatingActionButton: Builder(
+          builder: (context) {
+            return FloatingActionButton.extended(
+              onPressed: () {
+                // Navega a la pantalla de añadir, que ahora necesita el GarageBloc.
+                // GoRouter se encargará de que el BlocProvider.value funcione.
+                context.push('/garage/add');
+              },
+              label: const Text('Añadir Vehículo'),
+              icon: const Icon(Icons.add),
+            );
+          }
         ),
       ),
     );
