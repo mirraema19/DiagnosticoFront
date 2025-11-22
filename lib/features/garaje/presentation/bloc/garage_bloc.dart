@@ -1,3 +1,4 @@
+import 'package:proyecto/core/services/service_locator.dart';
 import 'package:proyecto/features/garaje/presentation/data/models/vehicle_model.dart';
 import 'package:proyecto/features/garaje/presentation/data/repositories/garage_repository.dart';
 import 'package:bloc/bloc.dart';
@@ -6,14 +7,16 @@ import 'package:equatable/equatable.dart';
 part 'garage_event.dart';
 part 'garage_state.dart';
 
+
 class GarageBloc extends Bloc<GarageEvent, GarageState> {
-  final GarageRepository _garageRepository = GarageRepository();
+  final GarageRepository _garageRepository = sl<GarageRepository>();
 
   GarageBloc() : super(GarageLoading()) {
     on<LoadGarageData>(_onLoadGarageData);
     on<AddVehicle>(_onAddVehicle);
-    // --- CORRECCIÓN: REGISTRAMOS EL NUEVO EVENTO DE ACTUALIZACIÓN ---
     on<UpdateVehicle>(_onUpdateVehicle);
+    // Ahora que agregaste la clase en el archivo de eventos, este error desaparecerá:
+    on<DeleteVehicle>(_onDeleteVehicle);
   }
 
   Future<void> _onLoadGarageData(
@@ -35,24 +38,34 @@ class GarageBloc extends Bloc<GarageEvent, GarageState> {
   ) async {
     try {
       await _garageRepository.addVehicle(event.vehicle);
-      add(LoadGarageData()); // Recarga la lista
+      add(LoadGarageData());
     } catch (e) {
       emit(GarageError(e.toString()));
     }
   }
 
-  // --- NUEVO MANEJADOR DE EVENTO PARA ACTUALIZAR ---
   Future<void> _onUpdateVehicle(
     UpdateVehicle event,
     Emitter<GarageState> emit,
   ) async {
     try {
-      // Le decimos al repositorio que actualice el vehículo
       await _garageRepository.updateVehicle(event.updatedVehicle);
-      // Recargamos la lista para que la UI refleje los cambios
       add(LoadGarageData());
     } catch (e) {
       emit(GarageError(e.toString()));
+    }
+  }
+
+  // --- LÓGICA PARA ELIMINAR ---
+  Future<void> _onDeleteVehicle(
+    DeleteVehicle event,
+    Emitter<GarageState> emit,
+  ) async {
+    try {
+      await _garageRepository.deleteVehicle(event.vehicleId);
+      add(LoadGarageData()); // Recargamos la lista después de borrar
+    } catch (e) {
+      emit(GarageError("Error al eliminar: ${e.toString()}"));
     }
   }
 }

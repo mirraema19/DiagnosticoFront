@@ -1,0 +1,66 @@
+import 'package:equatable/equatable.dart';
+
+class Maintenance extends Equatable {
+  final String id;
+  final String vehicleId;
+  final String serviceType; // Debe coincidir con los valores del ENUM del backend
+  final String? description;
+  final DateTime serviceDate;
+  final int mileageAtService;
+  final double? cost;
+  final String currency;
+  final String? workshopName;
+  final String? invoiceUrl;
+  final String? notes;
+
+  const Maintenance({
+    required this.id,
+    required this.vehicleId,
+    required this.serviceType,
+    this.description,
+    required this.serviceDate,
+    required this.mileageAtService,
+    this.cost,
+    required this.currency,
+    this.workshopName,
+    this.invoiceUrl,
+    this.notes,
+  });
+
+  factory Maintenance.fromJson(Map<String, dynamic> json) {
+    return Maintenance(
+      id: json['id'],
+      vehicleId: json['vehicleId'],
+      serviceType: json['serviceType'],
+      description: json['description'],
+      serviceDate: DateTime.parse(json['serviceDate']),
+      mileageAtService: json['mileageAtService'],
+      cost: (json['cost'] as num?)?.toDouble(),
+      currency: json['currency'] ?? 'MXN',
+      workshopName: json['workshopName'],
+      invoiceUrl: json['invoiceUrl'],
+      notes: json['notes'],
+    );
+  }
+
+  // --- MÉTODO toJson ACTUALIZADO ---
+  // Genera un JSON que cumple con CreateMaintenanceDto
+  Map<String, dynamic> toJson() {
+    return {
+      // serviceType debe ser uno de los valores permitidos (OIL_CHANGE, etc.)
+      'serviceType': serviceType,
+      'description': description,
+      // serviceDate debe ser solo la fecha (YYYY-MM-DD) según el DTO
+      'serviceDate': serviceDate.toIso8601String().split('T')[0], 
+      'mileageAtService': mileageAtService,
+      'cost': cost,
+      'currency': currency,
+      'workshopName': workshopName,
+      'invoiceUrl': invoiceUrl,
+      'notes': notes,
+    };
+  }
+
+  @override
+  List<Object?> get props => [id, vehicleId, serviceType, serviceDate];
+}

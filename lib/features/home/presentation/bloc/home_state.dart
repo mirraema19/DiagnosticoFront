@@ -3,16 +3,17 @@ part of 'home_bloc.dart';
 abstract class HomeState extends Equatable {
   const HomeState();
   @override
-  List<Object> get props => [];
+  List<Object?> get props => []; // Permitimos props nulos
 }
 
 class HomeLoading extends HomeState {}
 
 class HomeLoaded extends HomeState {
-  final Vehicle primaryVehicle;
+  // --- CORRECCIÓN: El vehículo ahora puede ser nulo ---
+  final Vehicle? primaryVehicle;
   const HomeLoaded(this.primaryVehicle);
   @override
-  List<Object> get props => [primaryVehicle];
+  List<Object?> get props => [primaryVehicle];
 }
 
 class HomeError extends HomeState {

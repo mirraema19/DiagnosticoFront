@@ -1,7 +1,9 @@
+import 'package:flutter/gestures.dart';
+import 'package:proyecto/core/services/service_locator.dart';
 import 'package:proyecto/features/auth/data/repositories/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -11,80 +13,189 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _nameController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  // CAMBIO: Un solo controlador para el nombre completo
+  final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
+  
   bool _isLoading = false;
+  bool _termsAccepted = false;
+  String _selectedRole = 'VEHICLE_OWNER'; // Valor por defecto según enum del backend
 
-  Future<void> _submitRegistration() async {
-    setState(() => _isLoading = true);
-    try {
-      // Obtenemos el repositorio y llamamos al método de registro
-      await context.read<AuthRepository>().register(
-        name: _nameController.text,
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      // Si el registro es exitoso, volvemos al login
+  Future<void> _launchURL(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registro exitoso. Ahora puedes iniciar sesión.')),
+          SnackBar(content: Text('No se pudo abrir el enlace: $urlString')),
         );
-        context.pop();
+      }
+    }
+  }
+
+  void _showPrivacyNoticeDialog(BuildContext context) {
+    // ... (Mismo código de diálogo que tenías antes)
+     showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Aviso de Privacidad'),
+          content: const Text('Contenido del aviso...'), // Simplificado para brevedad
+          actions: [ TextButton(child: const Text('Cerrar'), onPressed: () => Navigator.of(context).pop()) ],
+        );
+      },
+    );
+  }
+
+  Future<void> _submitRegistration() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_termsAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debes aceptar los términos para continuar.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final authRepository = sl<AuthRepository>();
+      // CAMBIO: Enviamos fullName
+      await authRepository.register(
+        fullName: _fullNameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+        phone: _phoneController.text,
+        role: _selectedRole,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registro exitoso. Iniciando sesión...')),
+        );
+        // Como guardamos el token en el repositorio, podemos ir al home o admin
+        if (_selectedRole == 'WORKSHOP_ADMIN') {
+           context.go('/admin');
+        } else {
+           context.go('/');
+        }
       }
     } catch (e) {
-       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception:', ''))),
         );
-       }
+      }
     } finally {
-      if(mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Estilos...
+    final defaultStyle = Theme.of(context).textTheme.bodyMedium;
+    final linkStyle = defaultStyle?.copyWith(
+      color: Theme.of(context).colorScheme.primary,
+      fontWeight: FontWeight.bold,
+    );
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Crear Cuenta'),
-      ),
+      appBar: AppBar(title: const Text('Crear Cuenta')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 20),
-            Text(
-              'Completa tus datos para empezar',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Nombre Completo'),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Contraseña'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 32),
-            _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : ElevatedButton(
-                  onPressed: _submitRegistration,
-                  child: const Text('REGISTRARSE'),
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Completa tus datos', style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
+              const SizedBox(height: 32),
+              
+              // CAMBIO: Campo único de Nombre Completo
+              TextFormField(
+                controller: _fullNameController,
+                decoration: const InputDecoration(labelText: 'Nombre Completo', prefixIcon: Icon(Icons.person)),
+                validator: (v) => v == null || v.length < 3 ? 'Mínimo 3 caracteres' : null,
+              ),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) => v == null || !v.contains('@') ? 'Email inválido' : null,
+              ),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _passwordController,
+                decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock)),
+                obscureText: true,
+                validator: (v) => v == null || v.length < 8 ? 'Mínimo 8 caracteres' : null,
+              ),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(labelText: 'Teléfono (+52...)', prefixIcon: Icon(Icons.phone)),
+                keyboardType: TextInputType.phone,
+                // Validación básica de formato según backend
+                validator: (v) => v == null || v.length < 10 ? 'Teléfono requerido' : null,
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                value: _selectedRole,
+                decoration: const InputDecoration(labelText: 'Tipo de Cuenta', prefixIcon: Icon(Icons.account_box)),
+                items: const [
+                  DropdownMenuItem(value: 'VEHICLE_OWNER', child: Text('Dueño de Vehículo')),
+                  DropdownMenuItem(value: 'WORKSHOP_ADMIN', child: Text('Dueño de Taller')),
+                ],
+                onChanged: (v) => setState(() => _selectedRole = v!),
+              ),
+
+              const SizedBox(height: 24),
+
+              CheckboxListTile(
+                value: _termsAccepted,
+                onChanged: (v) => setState(() => _termsAccepted = v ?? false),
+                title: RichText(
+                  text: TextSpan(
+                    style: defaultStyle,
+                    children: [
+                      const TextSpan(text: 'Acepto los '),
+                      TextSpan(text: 'Términos', style: linkStyle, recognizer: TapGestureRecognizer()..onTap = () {}),
+                      const TextSpan(text: ' y el '),
+                      TextSpan(text: 'Aviso de Privacidad', style: linkStyle, recognizer: TapGestureRecognizer()..onTap = () => _showPrivacyNoticeDialog(context)),
+                    ],
+                  ),
                 ),
-          ],
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+
+              const SizedBox(height: 24),
+
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                      onPressed: _submitRegistration,
+                      child: const Text('REGISTRARSE'),
+                    ),
+            ],
+          ),
         ),
       ),
     );

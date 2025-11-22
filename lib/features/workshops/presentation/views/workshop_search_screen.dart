@@ -1,3 +1,4 @@
+import 'package:proyecto/core/services/service_locator.dart';
 import 'package:proyecto/features/workshops/data/models/workshop_model.dart';
 import 'package:proyecto/features/workshops/data/repositories/workshop_repository.dart';
 import 'package:proyecto/features/workshops/presentation/widgets/workshop_list_item.dart';
@@ -13,12 +14,15 @@ class WorkshopSearchScreen extends StatefulWidget {
 }
 
 class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
-  final WorkshopRepository _repository = WorkshopRepository();
+  // --- CORRECCIÓN CLAVE: Obtenemos la instancia del repositorio desde el Service Locator ---
+  // Esto nos da la versión conectada al backend, no la de datos simulados.
+  final WorkshopRepository _repository = sl<WorkshopRepository>();
   late final Future<List<Workshop>> _workshopsFuture;
 
   @override
   void initState() {
     super.initState();
+    // La llamada al método no cambia, pero ahora obtendrá los datos del backend real.
     _workshopsFuture = _repository.fetchWorkshops();
   }
 
@@ -93,7 +97,16 @@ class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  // Muestra un error más descriptivo si la llamada a la API falla
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'No se pudieron cargar los talleres. Verifica tu conexión a internet.\n\nError: ${snapshot.error}',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(child: Text('No se encontraron talleres.'));
                 }
@@ -104,7 +117,6 @@ class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
                   itemCount: workshops.length,
                   itemBuilder: (context, index) {
                     final workshop = workshops[index];
-                    // --- ESTE GESTUREDETECTOR ES EL ÚNICO RESPONSABLE DE LA NAVEGACIÓN ---
                     return GestureDetector(
                       onTap: () {
                         context.push('/workshops/details', extra: workshop);

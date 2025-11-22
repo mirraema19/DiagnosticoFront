@@ -2,13 +2,14 @@ import 'package:proyecto/features/garaje/presentation/data/models/vehicle_model.
 import 'package:proyecto/features/garaje/presentation/data/repositories/garage_repository.dart';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:proyecto/core/services/service_locator.dart';
 
 part 'home_event.dart';
 part 'home_state.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
-  // El HomeBloc depende del GarageRepository para obtener el vehículo principal
-  final GarageRepository _garageRepository = GarageRepository();
+  // --- CORRECCIÓN: Obtenemos el repositorio desde el Service Locator ---
+  final GarageRepository _garageRepository = sl<GarageRepository>();
 
   HomeBloc() : super(HomeLoading()) {
     on<LoadHomeData>(_onLoadHomeData);

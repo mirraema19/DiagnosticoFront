@@ -64,7 +64,7 @@ class GarageScreen extends StatelessWidget {
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     Image.asset(
-                                  'assets/civic.jpg', // Imagen local de respaldo
+                                  'assets/images/civic.jpg', // Imagen local de respaldo
                                   fit: BoxFit.cover,
                                 ),
                               ),

@@ -16,26 +16,18 @@ class ProfileScreen extends StatelessWidget {
       return const Scaffold(body: Center(child: Text('Usuario no encontrado.')));
     }
 
-    // CORRECCIÓN: Se utiliza un Scaffold con un AppBar transparente y un body flexible.
     return Scaffold(
-      // Hacemos que el body se extienda detrás del AppBar
-      extendBodyBehindAppBar: true, 
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text('Mi Perfil'),
-        // El color del texto y los iconos del AppBar se heredarán del tema,
-        // pero podemos asegurarnos de que sean blancos para el fondo oscuro.
         foregroundColor: Colors.white,
       ),
-      // CORRECCIÓN: Usamos SingleChildScrollView para evitar overflows en pantallas pequeñas.
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // SECCIÓN 1: Cabecera con el fondo y la información del usuario
             _buildHeader(context, user),
-
-            // SECCIÓN 2: Contenido principal (tarjetas y botón)
             _buildContent(context, user),
           ],
         ),
@@ -43,13 +35,11 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Widget para la cabecera
   Widget _buildHeader(BuildContext context, User user) {
     return Stack(
-      clipBehavior: Clip.none, // Permite que el avatar se salga del Stack
+      clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
-        // Fondo con gradiente y forma curva
         Container(
           height: 200,
           decoration: const BoxDecoration(
@@ -57,14 +47,13 @@ class ProfileScreen extends StatelessWidget {
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
         ),
-        // Posicionamos el avatar para que quede mitad dentro, mitad fuera
         Positioned(
-          top: 130, // Aproximadamente AppBar height + un poco de espacio
+          top: 130,
           child: Column(
             children: [
               const CircleAvatar(
                 radius: 55,
-                backgroundColor: AppTheme.backgroundColor, // Borde blanco
+                backgroundColor: AppTheme.backgroundColor,
                 child: CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.white,
@@ -88,10 +77,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Widget para el contenido debajo de la cabecera
   Widget _buildContent(BuildContext context, User user) {
     return Padding(
-      // Añadimos un espacio superior grande para dejar sitio a la cabecera y al avatar
       padding: const EdgeInsets.only(top: 130, left: 16, right: 16, bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -101,11 +88,21 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
+                  // --- CORRECCIÓN AQUÍ ---
+                  // Reemplazamos 'Vehículo' por 'Teléfono' o cualquier otro dato del usuario
                   _buildProfileInfoTile(
-                    context, Icons.directions_car, 'Vehículo', user.vehicleModel),
+                    context,
+                    Icons.phone_outlined,
+                    'Teléfono',
+                    user.phone ?? 'No especificado', // Mostramos el teléfono
+                  ),
                   const Divider(height: 24),
                   _buildProfileInfoTile(
-                    context, Icons.history, 'Diagnósticos', '3 completados'),
+                    context,
+                    Icons.history,
+                    'Diagnósticos',
+                    '3 completados', // Este es un dato simulado que podemos mantener por ahora
+                  ),
                 ],
               ),
             ),

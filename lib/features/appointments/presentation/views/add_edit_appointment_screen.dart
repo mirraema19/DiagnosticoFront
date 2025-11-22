@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-
+import 'package:flutter_animate/flutter_animate.dart';
 // --- CORRECCIÓN: La clase Wrapper ha sido eliminada ---
 
 class AddEditAppointmentScreen extends StatefulWidget {
@@ -47,7 +47,7 @@ class _AddEditAppointmentScreenState extends State<AddEditAppointmentScreen> {
     context.pop();
   }
 
-  @override
+   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -60,20 +60,30 @@ class _AddEditAppointmentScreenState extends State<AddEditAppointmentScreen> {
           children: [
             TextFormField(
               controller: _workshopController,
-              decoration: const InputDecoration(labelText: 'Taller'),
+              decoration: const InputDecoration(
+                label: Text('Taller'),
+                prefixIcon: Icon(Icons.build_outlined),
+                suffixIcon: Icon(Icons.arrow_drop_down),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             TextFormField(
               controller: _serviceController,
-              decoration: const InputDecoration(labelText: 'Servicio'),
+              decoration: const InputDecoration(
+                label: Text('Servicio'),
+                prefixIcon: Icon(Icons.miscellaneous_services_outlined),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             TextFormField(
               readOnly: true,
-              decoration: InputDecoration(
-                labelText: 'Fecha y Hora',
-                hintText: DateFormat.yMMMd('es_ES').add_jm().format(_selectedDate),
-                suffixIcon: const Icon(Icons.calendar_today),
+              // Usamos un controlador para poder actualizar el texto dinámicamente
+              controller: TextEditingController(
+                text: DateFormat.yMMMd('es_ES').add_jm().format(_selectedDate),
+              ),
+              decoration: const InputDecoration(
+                label: Text('Fecha y Hora'),
+                prefixIcon: Icon(Icons.calendar_today_outlined),
               ),
               onTap: () async {
                 FocusScope.of(context).requestFocus(FocusNode());
@@ -90,12 +100,15 @@ class _AddEditAppointmentScreenState extends State<AddEditAppointmentScreen> {
                 }
               },
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 48),
             ElevatedButton(
               onPressed: _submitAppointment,
               child: const Text('CONFIRMAR CITA'),
             )
-          ],
+          ]
+              .animate(interval: 100.ms)
+              .fadeIn(duration: 400.ms, delay: 200.ms)
+              .slideY(begin: 0.5, end: 0.0),
         ),
       ),
     );

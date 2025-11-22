@@ -1,57 +1,72 @@
+import 'package:proyecto/core/services/token_storage_service.dart';
+import 'package:proyecto/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:proyecto/features/auth/data/models/user_model.dart';
 
 class AuthRepository {
-  // --- CORRECCIÓN: Singleton para mantener el estado de los usuarios ---
-  static final AuthRepository _instance = AuthRepository._internal();
-  factory AuthRepository() {
-    return _instance;
-  }
-  AuthRepository._internal();
-
-  // Guardamos el usuario logueado actualmente
-  User? _user;
+  final AuthRemoteDataSource _remoteDataSource;
+  final TokenStorageService _tokenStorage;
   
-  // Simulación de base de datos de usuarios
-  final Map<String, User> _registeredUsers = {
-    'test@test.com': const User(
-        id: 'user123',
-        name: 'Alex Reyes',
-        email: 'test@test.com',
-        vehicleModel: 'Toyota Corolla 2022',
-    )
-  };
-  final Map<String, String> _passwords = {'test@test.com': 'password'};
+  User? _user;
 
+  AuthRepository({
+    required AuthRemoteDataSource remoteDataSource,
+    required TokenStorageService tokenStorage,
+  }) : _remoteDataSource = remoteDataSource,
+       _tokenStorage = tokenStorage;
 
   Future<User?> get currentUser async => _user;
 
   Future<User> login({required String email, required String password}) async {
-    await Future.delayed(const Duration(seconds: 1));
-    if (_registeredUsers.containsKey(email) && _passwords[email] == password) {
-      _user = _registeredUsers[email];
-      return _user!;
-    } else {
-      throw Exception('Credenciales incorrectas');
-    }
+    final response = await _remoteDataSource.login(email, password);
+    
+    await _tokenStorage.saveTokens(
+      accessToken: response['accessToken'],
+      refreshToken: response['refreshToken'],
+    );
+    
+    _user = User.fromJson(response['user']);
+    return _user!;
   }
 
-  // --- NUEVO MÉTODO PARA REGISTRAR USUARIOS ---
-  Future<void> register({required String name, required String email, required String password}) async {
-    await Future.delayed(const Duration(seconds: 1));
-    if (_registeredUsers.containsKey(email)) {
-      throw Exception('El email ya está registrado.');
-    }
-    _registeredUsers[email] = User(
-      id: 'user${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
+  // ACTUALIZACIÓN: Usamos fullName
+  Future<void> register({
+    required String fullName,
+    required String email,
+    required String password,
+    required String phone,
+    required String role,
+  }) async {
+    final response = await _remoteDataSource.register(
+      fullName: fullName,
       email: email,
-      vehicleModel: 'Sin vehículo',
+      password: password,
+      phone: phone,
+      role: role,
     );
-    _passwords[email] = password;
+
+    // Si el backend devuelve tokens al registrarse (login automático), los guardamos
+    if (response.containsKey('accessToken')) {
+       await _tokenStorage.saveTokens(
+        accessToken: response['accessToken'],
+        refreshToken: response['refreshToken'],
+      );
+      if (response.containsKey('user')) {
+        _user = User.fromJson(response['user']);
+      }
+    }
   }
 
   Future<void> logout() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    await _tokenStorage.deleteAllTokens();
     _user = null;
+  }
+  
+ // --- NUEVOS MÉTODOS ---
+  Future<void> requestPasswordReset(String email) async {
+    await _remoteDataSource.requestPasswordReset(email);
+  }
+
+  Future<void> resetPassword({required String token, required String newPassword}) async {
+    await _remoteDataSource.resetPassword(token, newPassword);
   }
 }

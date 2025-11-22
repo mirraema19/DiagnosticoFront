@@ -1,30 +1,50 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+// Widgets Core
 import 'package:proyecto/core/widgets/scaffold_with_nav_bar.dart';
-import 'package:proyecto/features/appointments/presentation/bloc/appointments_bloc.dart';
-import 'package:proyecto/features/appointments/presentation/views/add_edit_appointment_screen.dart';
-import 'package:proyecto/features/appointments/presentation/views/my_appointments_screen.dart';
+
+// Auth
 import 'package:proyecto/features/auth/presentation/bloc/auth_bloc/auth_bloc.dart';
 import 'package:proyecto/features/auth/presentation/views/login_screen.dart';
 import 'package:proyecto/features/auth/presentation/views/register_screen.dart';
-import 'package:proyecto/features/diagnosis/presentation/views/diagnosis_chat_screen.dart';
+import 'package:proyecto/features/auth/presentation/views/forgot_password_screen.dart';
+import 'package:proyecto/features/auth/presentation/views/reset_password_screen.dart';
+
+// Admin
+import 'package:proyecto/features/workshop_admin/presentation/views/admin_dashboard_screen.dart';
+
+// Home
+import 'package:proyecto/features/home/presentation/views/home_screen.dart';
+
+// Garage
 import 'package:proyecto/features/garaje/presentation/data/models/vehicle_model.dart';
-import 'package:proyecto/features/garaje/presentation/bloc/garage_bloc.dart';
+import 'package:proyecto/features/garaje/presentation/views/garage_screen.dart';
 import 'package:proyecto/features/garaje/presentation/views/add_vehicle_screen.dart';
 import 'package:proyecto/features/garaje/presentation/views/edit_vehicle_screen.dart';
-import 'package:proyecto/features/garaje/presentation/views/garage_screen.dart';
 import 'package:proyecto/features/garaje/presentation/views/vehicle_detail_screen.dart';
-import 'package:proyecto/features/history/presentation/views/history_screen.dart';
-import 'package:proyecto/features/home/presentation/views/home_screen.dart';
-import 'package:proyecto/features/profile/presentation/views/profile_screen.dart';
+
+// Appointments & Reminders
+import 'package:proyecto/features/appointments/presentation/views/my_appointments_screen.dart';
+import 'package:proyecto/features/appointments/presentation/views/add_edit_appointment_screen.dart';
+import 'package:proyecto/features/appointments/presentation/views/reminders_screen.dart';
+import 'package:proyecto/features/appointments/presentation/views/add_reminder_screen.dart';
+
+// Workshops
 import 'package:proyecto/features/workshops/data/models/workshop_model.dart';
-import 'package:proyecto/features/workshops/presentation/views/workshop_detail_screen.dart';
 import 'package:proyecto/features/workshops/presentation/views/workshop_search_screen.dart';
-import 'package:flutter/material.dart';
-// --- IMPORTACIÓN FALTANTE AÑADIDA ---
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
+import 'package:proyecto/features/workshops/presentation/views/workshop_detail_screen.dart';
 
+// Diagnosis
+import 'package:proyecto/features/diagnosis/presentation/views/diagnosis_chat_screen.dart';
 
+// History
+import 'package:proyecto/features/history/presentation/views/history_screen.dart';
+import 'package:proyecto/features/history/presentation/views/add_maintenance_screen.dart';
+
+// Profile
+import 'package:proyecto/features/profile/presentation/views/profile_screen.dart';
 
 class AppRouter {
   final AuthBloc authBloc;
@@ -35,9 +55,10 @@ class AppRouter {
     initialLocation: '/',
     refreshListenable: GoRouterRefreshStream(authBloc.stream),
     routes: [
+      // --- RUTAS PÚBLICAS (AUTH) ---
       GoRoute(
         path: '/login',
-        name: 'login',
+        name: 'login', // Solo debe aparecer una vez aquí
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
@@ -45,8 +66,25 @@ class AppRouter {
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
       ),
-      
-      // ShellRoute simple, sin proveedores de BLoC
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgotPassword',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'resetPassword',
+        builder: (context, state) => const ResetPasswordScreen(),
+      ),
+
+      // --- RUTA DE ADMIN ---
+      GoRoute(
+        path: '/admin',
+        name: 'adminDashboard',
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
+
+      // --- NAVEGACIÓN PRINCIPAL CLIENTE (SHELL) ---
       ShellRoute(
         builder: (context, state, child) {
           return ScaffoldWithNavBar(child: child);
@@ -74,18 +112,17 @@ class AppRouter {
           ),
         ],
       ),
-      
-      // Rutas que se muestran por encima del Shell
+
+      // --- RUTAS SECUNDARIAS (PUSH) ---
+
+      // Diagnóstico
       GoRoute(
         path: '/diagnosis',
         name: 'diagnosis',
         builder: (context, state) => const DiagnosisChatScreen(),
       ),
-      GoRoute(
-        path: '/history',
-        name: 'history',
-        builder: (context, state) => const HistoryScreen(),
-      ),
+
+      // Talleres
       GoRoute(
         path: '/workshops',
         name: 'workshops',
@@ -99,11 +136,12 @@ class AppRouter {
           return WorkshopDetailScreen(workshop: workshop);
         },
       ),
+
+      // Garaje
       GoRoute(
         path: '/garage/add',
         name: 'addVehicle',
-        // Apunta directamente a la pantalla, sin el Wrapper
-        builder: (context, state) => const AddVehicleScreen(),
+        builder: (context, state) => const AddVehicleScreen(), // Sin wrapper, ya es global
       ),
       GoRoute(
         path: '/garage/details',
@@ -121,25 +159,67 @@ class AppRouter {
           return EditVehicleScreen(vehicle: vehicle);
         },
       ),
+
+      // Citas
       GoRoute(
         path: '/appointments/add',
         name: 'addAppointment',
-        // Apunta directamente a la pantalla, sin el Wrapper
-        builder: (context, state) => const AddEditAppointmentScreen(),
+        builder: (context, state) => const AddEditAppointmentScreen(), // Sin wrapper
+      ),
+
+      // Historial
+      GoRoute(
+        path: '/history',
+        name: 'history',
+        builder: (context, state) => const HistoryScreen(),
+      ),
+      GoRoute(
+        path: '/history/add',
+        name: 'addHistory',
+        builder: (context, state) => const AddMaintenanceScreenWrapper(),
+      ),
+
+      // Recordatorios
+      GoRoute(
+        path: '/reminders',
+        name: 'reminders',
+        builder: (context, state) => const RemindersScreen(),
+      ),
+      GoRoute(
+        path: '/reminders/add',
+        name: 'addReminder',
+        builder: (context, state) => const AddReminderScreenWrapper(),
       ),
     ],
+
+    // --- LÓGICA DE REDIRECCIÓN ---
     redirect: (BuildContext context, GoRouterState state) {
       final bool loggedIn = authBloc.state.status == AuthStatus.authenticated;
-      final bool isLoggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      
+      // Rutas permitidas sin login
+      final bool isLoggingIn = state.matchedLocation == '/login';
+      final bool isRegistering = state.matchedLocation == '/register';
+      final bool isRecovering = state.matchedLocation == '/forgot-password' || state.matchedLocation == '/reset-password';
 
-      if (!loggedIn && !isLoggingIn) return '/login';
-      if (loggedIn && isLoggingIn) return '/';
+      // Si NO está logueado y NO está en una página pública -> ir a login
+      if (!loggedIn && !isLoggingIn && !isRegistering && !isRecovering) {
+        return '/login';
+      }
+
+      // Si SÍ está logueado e intenta ir a una página pública -> redirigir según rol
+      if (loggedIn && (isLoggingIn || isRegistering || isRecovering)) {
+        final userRole = authBloc.state.user?.role;
+        if (userRole == 'WORKSHOP_ADMIN') {
+          return '/admin';
+        }
+        return '/';
+      }
+
       return null;
     },
   );
 }
 
-// Clase para que GoRouter escuche los cambios de estado del BLoC
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();

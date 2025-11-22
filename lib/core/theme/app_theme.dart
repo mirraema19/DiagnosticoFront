@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // VISUAL UPDATE: Paleta de colores más rica y moderna
-  static const Color primaryColor = Color(0xFF0A1931); // Azul noche
-  static const Color accentColor = Color(0xFF38E54D);  // Verde neón para acentos
+  static const Color primaryColor = Color(0xFF0A1931);
+  static const Color accentColor = Color(0xFF38E54D);
   static const Color secondaryAccentColor = Color(0xFF2563EB); // Azul brillante
-  static const Color backgroundColor = Color(0xFFF0F2F5); // Gris muy claro
+  static const Color backgroundColor = Color(0xFFF0F2F5);
   static const Color cardColor = Colors.white;
-  static const Color textColor = Color(0xFF1E293B); // Azul oscuro para texto
+  static const Color textColor = Color(0xFF1E293B);
 
-  // VISUAL UPDATE: Gradientes reutilizables
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryColor, Color(0xFF183D5D)],
     begin: Alignment.topLeft,
@@ -36,7 +34,7 @@ class AppTheme {
     appBarTheme: AppBarTheme(
       backgroundColor: primaryColor,
       foregroundColor: Colors.white,
-      elevation: 0, // Sombra sutil
+      elevation: 0,
       centerTitle: true,
       titleTextStyle: GoogleFonts.poppins(
         fontSize: 20,
@@ -44,31 +42,43 @@ class AppTheme {
         color: Colors.white,
       ),
     ),
+    
+    // --- CORRECCIÓN CLAVE AQUÍ ---
+    // La clase correcta es 'CardThemeData', no 'CardTheme'.
     cardTheme: CardThemeData(
-  elevation: 5,
-  shadowColor: Colors.black.withOpacity(0.1),
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(16),
-  ),
-),
+      elevation: 5,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
 
     elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: secondaryAccentColor,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        textStyle: GoogleFonts.poppins(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
+      style: ButtonStyle(
+        backgroundColor: MaterialStateProperty.all<Color>(secondaryAccentColor),
+        foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+        padding: MaterialStateProperty.all<EdgeInsets>(
+          const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+        textStyle: MaterialStateProperty.all<TextStyle>(
+          GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        elevation: 4,
-        shadowColor: secondaryAccentColor.withOpacity(0.4),
+        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        elevation: MaterialStateProperty.all<double>(4),
+        shadowColor: MaterialStateProperty.all<Color>(secondaryAccentColor.withOpacity(0.4)),
       ),
     ),
-     inputDecorationTheme: InputDecorationTheme(
+    
+    // Estilo para los campos de texto
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: Colors.grey.shade300),
@@ -77,8 +87,8 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: secondaryAccentColor, width: 2),
       ),
-      filled: true,
-      fillColor: Colors.white,
+      floatingLabelStyle: const TextStyle(color: secondaryAccentColor),
+      prefixIconColor: Colors.grey.shade600,
     ),
   );
 }
