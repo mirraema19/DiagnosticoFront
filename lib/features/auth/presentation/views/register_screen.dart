@@ -36,14 +36,73 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _showPrivacyNoticeDialog(BuildContext context) {
-    // ... (Mismo código de diálogo que tenías antes)
-     showDialog(
+    final defaultStyle = Theme.of(context).textTheme.bodyMedium;
+    final linkStyle = defaultStyle?.copyWith(
+      color: Theme.of(context).colorScheme.primary,
+      fontWeight: FontWeight.bold,
+      decoration: TextDecoration.underline,
+    );
+
+    showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Aviso de Privacidad'),
-          content: const Text('Contenido del aviso...'), // Simplificado para brevedad
-          actions: [ TextButton(child: const Text('Cerrar'), onPressed: () => Navigator.of(context).pop()) ],
+          content: SingleChildScrollView(
+            child: RichText(
+              text: TextSpan(
+                style: defaultStyle,
+                children: [
+                  const TextSpan(
+                    text: 'AutoDiag, es el responsable del tratamiento de sus datos personales.\n\n',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const TextSpan(
+                    text: 'Los datos que recabamos de usted (identificación, contacto, ubicación y datos del vehículo) serán utilizados para las siguientes finalidades principales:\n\n',
+                  ),
+                  const TextSpan(
+                    text: '• Crear y gestionar su cuenta de usuario en nuestra plataforma.\n',
+                  ),
+                  const TextSpan(
+                    text: '• Proporcionar diagnósticos automotrices preliminares mediante Inteligencia Artificial.\n',
+                  ),
+                  const TextSpan(
+                    text: '• Gestionar citas y servicios con los talleres mecánicos de su elección.\n',
+                  ),
+                  const TextSpan(
+                    text: '• Mantener un historial digital de los servicios y reparaciones de su vehículo.\n\n',
+                  ),
+                  const TextSpan(
+                    text: 'De manera adicional, utilizaremos su información para las siguientes finalidades secundarias:\n\n',
+                  ),
+                  const TextSpan(
+                    text: '• Mejorar nuestros algoritmos de predicción y diagnóstico.\n',
+                  ),
+                  const TextSpan(
+                    text: '• Envío de promociones y encuestas de calidad.\n\n',
+                  ),
+                  const TextSpan(
+                    text: 'Para más información, consulta nuestro Aviso de Privacidad Integral ',
+                  ),
+                  TextSpan(
+                    text: 'aquí',
+                    style: linkStyle,
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        _launchURL('https://avisotheprivacidad.netlify.app/');
+                      },
+                  ),
+                  const TextSpan(text: '.'),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cerrar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
         );
       },
     );

@@ -1,62 +1,130 @@
 part of 'diagnosis_bloc.dart';
 
-// --- NUEVOS ENUMS Y CLASES PARA EL ESTADO ---
-
-enum UrgencyLevel { urgent, soon, programmable }
-enum ConversationStage { askingProblem, askingClarification, providingDiagnosis, recommendingWorkshops }
-
-class DiagnosisResult extends Equatable {
-  final String problemCategory;
-  final UrgencyLevel urgency;
-  final String costEstimate;
-  final List<Workshop> recommendedWorkshops;
-
-  const DiagnosisResult({
-    required this.problemCategory,
-    required this.urgency,
-    required this.costEstimate,
-    required this.recommendedWorkshops,
-  });
-  
-  @override
-  List<Object?> get props => [problemCategory, urgency, costEstimate, recommendedWorkshops];
-}
-
-// --- CLASE CHATMESSAGE SIN CAMBIOS ---
-class ChatMessage extends Equatable {
-  final String text;
-  final bool isFromUser;
-
-  const ChatMessage({required this.text, required this.isFromUser});
+abstract class DiagnosisState extends Equatable {
+  const DiagnosisState();
 
   @override
-  List<Object> get props => [text, isFromUser];
+  List<Object?> get props => [];
 }
 
-// --- ESTADO PRINCIPAL MODIFICADO ---
-class DiagnosisState extends Equatable {
-  final List<ChatMessage> messages;
-  final ConversationStage stage;
-  final DiagnosisResult? result; // Puede ser nulo hasta el final
+/// Estado inicial
+class DiagnosisInitial extends DiagnosisState {
+  const DiagnosisInitial();
+}
 
-  const DiagnosisState({
-    this.messages = const [],
-    this.stage = ConversationStage.askingProblem,
-    this.result,
+/// Cargando
+class DiagnosisLoading extends DiagnosisState {
+  const DiagnosisLoading();
+}
+
+/// Lista de sesiones cargada
+class DiagnosisSessionsLoaded extends DiagnosisState {
+  final List<DiagnosisSessionModel> sessions;
+
+  const DiagnosisSessionsLoaded(this.sessions);
+
+  @override
+  List<Object?> get props => [sessions];
+}
+
+/// Sesión activa (chat en curso)
+class DiagnosisSessionActive extends DiagnosisState {
+  final DiagnosisSessionModel session;
+  final List<DiagnosisMessageModel> messages;
+  final List<String> suggestedQuestions;
+  final ClassificationModel? classification;
+  final UrgencyModel? urgency;
+  final CostEstimateModel? costEstimate;
+  final List<dynamic>? recommendedWorkshops; // Workshop models
+
+  const DiagnosisSessionActive({
+    required this.session,
+    required this.messages,
+    this.suggestedQuestions = const [],
+    this.classification,
+    this.urgency,
+    this.costEstimate,
+    this.recommendedWorkshops,
   });
 
-  DiagnosisState copyWith({
-    List<ChatMessage>? messages,
-    ConversationStage? stage,
-    DiagnosisResult? result,
+  DiagnosisSessionActive copyWith({
+    DiagnosisSessionModel? session,
+    List<DiagnosisMessageModel>? messages,
+    List<String>? suggestedQuestions,
+    ClassificationModel? classification,
+    UrgencyModel? urgency,
+    CostEstimateModel? costEstimate,
+    List<dynamic>? recommendedWorkshops,
   }) {
-    return DiagnosisState(
+    return DiagnosisSessionActive(
+      session: session ?? this.session,
       messages: messages ?? this.messages,
-      stage: stage ?? this.stage,
-      result: result ?? this.result,
+      suggestedQuestions: suggestedQuestions ?? this.suggestedQuestions,
+      classification: classification ?? this.classification,
+      urgency: urgency ?? this.urgency,
+      costEstimate: costEstimate ?? this.costEstimate,
+      recommendedWorkshops: recommendedWorkshops ?? this.recommendedWorkshops,
     );
   }
 
   @override
-  List<Object?> get props => [messages, stage, result];
+  List<Object?> get props => [
+        session,
+        messages,
+        suggestedQuestions,
+        classification,
+        urgency,
+        costEstimate,
+        recommendedWorkshops,
+      ];
+}
+
+/// Mensaje enviado exitosamente
+class DiagnosisMessageSent extends DiagnosisState {
+  final ChatResponseModel response;
+
+  const DiagnosisMessageSent(this.response);
+
+  @override
+  List<Object?> get props => [response];
+}
+
+/// Problema clasificado
+class DiagnosisClassified extends DiagnosisState {
+  final ClassificationModel classification;
+
+  const DiagnosisClassified(this.classification);
+
+  @override
+  List<Object?> get props => [classification];
+}
+
+/// Urgencia obtenida
+class DiagnosisUrgencyObtained extends DiagnosisState {
+  final UrgencyModel urgency;
+
+  const DiagnosisUrgencyObtained(this.urgency);
+
+  @override
+  List<Object?> get props => [urgency];
+}
+
+/// Estimación de costos obtenida
+class DiagnosisCostEstimateObtained extends DiagnosisState {
+  final CostEstimateModel costEstimate;
+
+  const DiagnosisCostEstimateObtained(this.costEstimate);
+
+  @override
+  List<Object?> get props => [costEstimate];
+}
+
+/// Error
+class DiagnosisError extends DiagnosisState {
+  final String message;
+
+  const DiagnosisError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }

@@ -1,19 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:proyecto/core/services/service_locator.dart';
+import 'package:proyecto/features/auth/presentation/bloc/auth_bloc/auth_bloc.dart';
 import 'package:proyecto/features/workshops/data/models/review_model.dart';
 import 'package:proyecto/features/workshops/data/models/workshop_model.dart';
+import 'package:proyecto/features/workshops/data/repositories/workshop_repository.dart';
+import 'package:proyecto/features/workshops/presentation/views/create_review_screen.dart';
 
-class WorkshopDetailScreen extends StatelessWidget {
+class WorkshopDetailScreen extends StatefulWidget {
   final Workshop workshop;
   const WorkshopDetailScreen({super.key, required this.workshop});
 
   @override
+  State<WorkshopDetailScreen> createState() => _WorkshopDetailScreenState();
+}
+
+class _WorkshopDetailScreenState extends State<WorkshopDetailScreen> {
+  late Workshop _workshop;
+
+  @override
+  void initState() {
+    super.initState();
+    _workshop = widget.workshop;
+  }
+
+  // Método para recargar el taller y ver las nuevas reseñas
+  Future<void> _refreshWorkshop() async {
+    try {
+      final updated = await sl<WorkshopRepository>().getWorkshopById(_workshop.id);
+      setState(() {
+        _workshop = updated;
+      });
+    } catch (_) {
+      // Ignoramos errores de recarga silenciosa
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final currentUser = context.read<AuthBloc>().state.user;
+    final currentUserId = currentUser?.id;
+    final isOwner = currentUser?.role == 'VEHICLE_OWNER';
 
     return Scaffold(
-      // Usamos un AppBar flexible para que la imagen se vea detrás
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -24,59 +56,64 @@ class WorkshopDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- SECCIÓN DE LA IMAGEN DE CABECERA ---
-            _HeaderImage(workshop: workshop),
-
-            // --- SECCIÓN DE INFORMACIÓN PRINCIPAL ---
+            _HeaderImage(workshop: _workshop),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(workshop.name, style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(_workshop.name, style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       const Icon(Icons.star, color: Colors.amber, size: 20),
                       const SizedBox(width: 8),
-                      Text(
-                        '${workshop.rating} (${workshop.reviewCount} reseñas verificadas)',
-                        style: textTheme.bodyLarge,
-                      ),
+                      Text('${_workshop.rating} (${_workshop.reviewCount} reseñas)', style: textTheme.bodyLarge),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  
-                  _buildSectionTitle(context, 'Sobre el Taller'),
-                  Text(workshop.description, style: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700)),
+                  _buildSectionTitle('Sobre el Taller'),
+                  Text(_workshop.description ?? 'Sin descripción.', style: textTheme.bodyMedium),
+                  const Divider(height: 32),
+                  _buildSectionTitle('Información'),
+                  _buildInfoRow(Icons.location_on, _workshop.address),
+                  _buildInfoRow(Icons.phone, _workshop.phone),
+                  _buildInfoRow(Icons.schedule, _workshop.operatingHours),
                   
                   const Divider(height: 32),
                   
-                  _buildSectionTitle(context, 'Especialidades Técnicas'),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: 4.0,
-                    children: workshop.specialties.map((tag) => Chip(label: Text(tag))).toList(),
+                  // CABECERA DE RESEÑAS
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildSectionTitle('Reseñas'),
+                      if (isOwner)
+                        TextButton.icon(
+                          onPressed: () async {
+                            final result = await Navigator.push(
+                              context, 
+                              MaterialPageRoute(builder: (_) => CreateReviewScreen(workshopId: _workshop.id))
+                            );
+                            if (result == true) {
+                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gracias por tu reseña')));
+                               _refreshWorkshop(); // Recargamos para ver la nueva reseña
+                            }
+                          },
+                          icon: const Icon(Icons.rate_review),
+                          label: const Text('Opinar'),
+                        ),
+                    ],
                   ),
-
-                  const Divider(height: 32),
                   
-                  _buildSectionTitle(context, 'Información y Contacto'),
-                  _buildInfoRow(context, icon: Icons.location_on_outlined, text: workshop.address),
-                  _buildInfoRow(context, icon: Icons.phone_outlined, text: workshop.phone),
-                  _buildInfoRow(context, icon: Icons.access_time_outlined, text: workshop.operatingHours),
-
-                  const Divider(height: 32),
-
-                  _buildSectionTitle(context, 'Calificaciones y Comentarios'),
-                  // --- SECCIÓN DE RESEÑAS ---
-                  workshop.reviews.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24.0),
-                          child: Center(child: Text('Este taller aún no tiene reseñas.')),
-                        )
+                  _workshop.reviews.isEmpty
+                      ? const Center(child: Padding(padding: EdgeInsets.all(20), child: Text('Sin reseñas aún.')))
                       : Column(
-                          children: workshop.reviews.map((review) => _ReviewListItem(review: review)).toList(),
+                          children: _workshop.reviews.map((review) => _ReviewItem(
+                            review: review, 
+                            isMyReview: review.userId == currentUserId, 
+                            workshopId: _workshop.id,
+                            onUpdate: _refreshWorkshop,
+                          )).toList(),
                         ),
                 ],
               ),
@@ -84,108 +121,122 @@ class WorkshopDetailScreen extends StatelessWidget {
           ],
         ),
       ),
-      // Botón flotante para la acción principal
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: FilledButton.icon(
-            onPressed: () {
-              context.push('/appointments/add');
-            },
-            label: const Text('Agendar una Cita'),
+            onPressed: () => context.push('/appointments/add'),
+            label: const Text('Agendar Cita'),
             icon: const Icon(Icons.calendar_today),
-            style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
           ),
         ),
       ),
     );
   }
 
-  // Helper para los títulos de sección
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-      ),
-    );
+  Widget _buildSectionTitle(String title) {
+    return Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold));
   }
 
-  // Helper para las filas de información (dirección, teléfono, etc.)
-  Widget _buildInfoRow(BuildContext context, {required IconData icon, required String text}) {
+  Widget _buildInfoRow(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
-          const SizedBox(width: 16),
-          Expanded(child: Text(text, style: Theme.of(context).textTheme.bodyLarge)),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(children: [Icon(icon, size: 20, color: Colors.blue), const SizedBox(width: 12), Expanded(child: Text(text))]),
+    );
+  }
+}
+
+class _ReviewItem extends StatelessWidget {
+  final Review review;
+  final bool isMyReview;
+  final String workshopId;
+  final VoidCallback onUpdate;
+
+  const _ReviewItem({
+    required this.review, 
+    required this.isMyReview,
+    required this.workshopId,
+    required this.onUpdate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(review.authorName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (isMyReview)
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'edit') {
+                         await Navigator.push(context, MaterialPageRoute(builder: (_) => CreateReviewScreen(workshopId: workshopId, existingReview: review)));
+                         onUpdate();
+                      } else if (value == 'delete') {
+                         await sl<WorkshopRepository>().deleteReview(workshopId, review.id);
+                         onUpdate();
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                      const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
+                    ],
+                    child: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                  ),
+              ],
+            ),
+            Row(children: List.generate(5, (i) => Icon(i < review.rating ? Icons.star : Icons.star_border, size: 16, color: Colors.amber))),
+            const SizedBox(height: 8),
+            Text(review.comment),
+            if (review.workshopResponse != null)
+              Container(
+                margin: const EdgeInsets.only(top: 8), 
+                padding: const EdgeInsets.all(8),
+                color: Colors.blue.shade50,
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Respuesta del Taller:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    Text(review.workshopResponse!, style: const TextStyle(fontSize: 12)),
+                  ],
+                ),
+              )
+          ],
+        ),
       ),
     );
   }
 }
 
-// Widget para la cabecera con imagen
 class _HeaderImage extends StatelessWidget {
-  const _HeaderImage({required this.workshop});
   final Workshop workshop;
-
+  const _HeaderImage({required this.workshop});
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 250,
+      height: 200,
+      width: double.infinity,
       decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(workshop.imageUrl),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.4),
-            BlendMode.darken,
-          ),
-        ),
+        color: Colors.grey.shade300,
       ),
-    );
-  }
-}
-
-// Widget para mostrar cada reseña individualmente
-class _ReviewListItem extends StatelessWidget {
-  final Review review;
-  const _ReviewListItem({required this.review});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(review.authorName, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(
-                DateFormat.yMMMd('es_ES').format(review.date),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: List.generate(5, (index) {
-              return Icon(
-                index < review.rating ? Icons.star : Icons.star_border,
-                color: Colors.amber,
-                size: 16,
-              );
-            }),
-          ),
-          const SizedBox(height: 8),
-          Text(review.comment, style: TextStyle(color: Colors.grey.shade800)),
-        ],
+      child: Image.asset(
+        'assets/images/Mecanico.jpg',
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey.shade400,
+            child: const Center(
+              child: Icon(Icons.build, size: 50, color: Colors.white),
+            ),
+          );
+        },
       ),
     );
   }

@@ -18,20 +18,23 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   Future<void> _onLoadHistory(LoadHistory event, Emitter<HistoryState> emit) async {
     emit(HistoryLoading());
     try {
-      final records = await _repository.getHistory(); 
+      // Usamos el ID que viene en el evento. Si es nulo, el repo intentará buscar el primario.
+      final records = await _repository.getHistory(vehicleId: event.vehicleId);
+      
+      // Ordenamos por fecha descendente
+      records.sort((a, b) => b.serviceDate.compareTo(a.serviceDate));
+      
       emit(HistoryLoaded(records));
     } catch (e) {
-      emit(HistoryError("Error al cargar historial: ${e.toString()}"));
+      emit(HistoryError(e.toString()));
     }
   }
 
   Future<void> _onAddMaintenanceRecord(AddMaintenanceRecord event, Emitter<HistoryState> emit) async {
     try {
-      // --- CORRECCIÓN AQUÍ ---
-      // Se agregó "vehicleId:" antes del valor
       await _repository.addRecord(event.record, vehicleId: event.record.vehicleId);
-      
-      add(LoadHistory()); // Recargar lista
+      // Recargamos usando el mismo ID
+      add(LoadHistory(vehicleId: event.record.vehicleId)); 
     } catch (e) {
       emit(HistoryError("Error al agregar registro: ${e.toString()}"));
     }

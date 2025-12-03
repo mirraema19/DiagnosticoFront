@@ -6,16 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:proyecto/features/history/data/models/maintenance_model.dart';
 import 'package:proyecto/features/history/presentation/bloc/history_bloc.dart';
 
-class AddMaintenanceScreenWrapper extends StatelessWidget {
-  const AddMaintenanceScreenWrapper({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: BlocProvider.of<HistoryBloc>(context),
-      child: const AddMaintenanceScreen(),
-    );
-  }
-}
+
 
 class AddMaintenanceScreen extends StatefulWidget {
   const AddMaintenanceScreen({super.key});

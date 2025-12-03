@@ -3,27 +3,33 @@ import 'package:flutter/material.dart';
 
 class WorkshopListItem extends StatelessWidget {
   final Workshop workshop;
+  final VoidCallback? onTap;
 
-  const WorkshopListItem({super.key, required this.workshop});
+  const WorkshopListItem({
+    super.key,
+    required this.workshop,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    // --- CORRECCIÓN: Se eliminó el widget InkWell que envolvía el Padding ---
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // --- Imagen del Taller ---
             ClipRRect(
               borderRadius: BorderRadius.circular(8.0),
               child: Image.asset(
-                workshop.imageUrl,
+                'assets/images/Mecanico.jpg',
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
@@ -40,6 +46,8 @@ class WorkshopListItem extends StatelessWidget {
                   Text(
                     workshop.name,
                     style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -61,9 +69,13 @@ class WorkshopListItem extends StatelessWidget {
                     children: [
                       Icon(Icons.location_on, color: Colors.grey.shade600, size: 16),
                       const SizedBox(width: 4),
-                      Text(
-                        workshop.address,
-                        style: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                      Expanded(
+                        child: Text(
+                          workshop.address,
+                          style: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
@@ -99,6 +111,7 @@ class WorkshopListItem extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 class Maintenance extends Equatable {
   final String id;
   final String vehicleId;
-  final String serviceType; // Debe coincidir con los valores del ENUM del backend
+  final String serviceType;
   final String? description;
   final DateTime serviceDate;
   final int mileageAtService;
@@ -12,6 +12,11 @@ class Maintenance extends Equatable {
   final String? workshopName;
   final String? invoiceUrl;
   final String? notes;
+  
+  // --- NUEVOS CAMPOS QUE FALTABAN ---
+  final String? createdBy;
+  final String? createdByRole; // Este es el que causaba el error
+  final DateTime? createdAt;
 
   const Maintenance({
     required this.id,
@@ -25,42 +30,58 @@ class Maintenance extends Equatable {
     this.workshopName,
     this.invoiceUrl,
     this.notes,
+    this.createdBy,
+    this.createdByRole,
+    this.createdAt,
   });
 
   factory Maintenance.fromJson(Map<String, dynamic> json) {
     return Maintenance(
-      id: json['id'],
-      vehicleId: json['vehicleId'],
-      serviceType: json['serviceType'],
+      id: json['id'] ?? '',
+      vehicleId: json['vehicleId'] ?? '',
+      serviceType: json['serviceType'] ?? 'OTHER',
       description: json['description'],
-      serviceDate: DateTime.parse(json['serviceDate']),
-      mileageAtService: json['mileageAtService'],
+      serviceDate: json['serviceDate'] != null 
+          ? DateTime.parse(json['serviceDate']) 
+          : DateTime.now(),
+      mileageAtService: json['mileageAtService'] ?? 0,
       cost: (json['cost'] as num?)?.toDouble(),
       currency: json['currency'] ?? 'MXN',
       workshopName: json['workshopName'],
       invoiceUrl: json['invoiceUrl'],
       notes: json['notes'],
+      
+      // --- MAPEO DE LOS NUEVOS CAMPOS ---
+      createdBy: json['createdBy'],
+      createdByRole: json['createdByRole'],
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
+          : null,
     );
   }
 
-  // --- MÉTODO toJson ACTUALIZADO ---
-  // Genera un JSON que cumple con CreateMaintenanceDto
   Map<String, dynamic> toJson() {
     return {
-      // serviceType debe ser uno de los valores permitidos (OIL_CHANGE, etc.)
       'serviceType': serviceType,
       'description': description,
-      // serviceDate debe ser solo la fecha (YYYY-MM-DD) según el DTO
-      'serviceDate': serviceDate.toIso8601String().split('T')[0], 
+      'serviceDate': serviceDate.toIso8601String().split('T')[0], // YYYY-MM-DD
       'mileageAtService': mileageAtService,
       'cost': cost,
       'currency': currency,
       'workshopName': workshopName,
       'invoiceUrl': invoiceUrl,
       'notes': notes,
+      // createdBy y createdByRole usualmente no se envían al crear, los pone el backend
     };
   }
 
   @override
-  List<Object?> get props => [id, vehicleId, serviceType, serviceDate];
+  List<Object?> get props => [
+        id, 
+        vehicleId, 
+        serviceType, 
+        serviceDate, 
+        createdBy, 
+        createdByRole
+      ];
 }

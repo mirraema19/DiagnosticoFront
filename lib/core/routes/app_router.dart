@@ -14,6 +14,11 @@ import 'package:proyecto/features/auth/presentation/views/reset_password_screen.
 
 // Admin
 import 'package:proyecto/features/workshop_admin/presentation/views/admin_dashboard_screen.dart';
+import 'package:proyecto/features/workshop_admin/presentation/views/create_workshop_screen.dart';
+import 'package:proyecto/features/workshop_admin/presentation/views/edit_workshop_screen.dart';
+import 'package:proyecto/features/workshop_admin/presentation/views/manage_schedule_screen.dart';
+import 'package:proyecto/features/workshop_admin/presentation/views/manage_specialties_screen.dart';
+import 'package:proyecto/features/workshop_admin/presentation/views/admin_add_maintenance_screen.dart';
 
 // Home
 import 'package:proyecto/features/home/presentation/views/home_screen.dart';
@@ -28,6 +33,9 @@ import 'package:proyecto/features/garaje/presentation/views/vehicle_detail_scree
 // Appointments & Reminders
 import 'package:proyecto/features/appointments/presentation/views/my_appointments_screen.dart';
 import 'package:proyecto/features/appointments/presentation/views/add_edit_appointment_screen.dart';
+import 'package:proyecto/features/appointments/presentation/views/create_appointment_improved_screen.dart';
+import 'package:proyecto/features/appointments/presentation/views/appointment_detail_screen.dart';
+import 'package:proyecto/features/appointments/presentation/views/notifications_screen.dart';
 import 'package:proyecto/features/appointments/presentation/views/reminders_screen.dart';
 import 'package:proyecto/features/appointments/presentation/views/add_reminder_screen.dart';
 
@@ -38,6 +46,7 @@ import 'package:proyecto/features/workshops/presentation/views/workshop_detail_s
 
 // Diagnosis
 import 'package:proyecto/features/diagnosis/presentation/views/diagnosis_chat_screen.dart';
+import 'package:proyecto/features/diagnosis/presentation/views/diagnosis_history_screen.dart';
 
 // History
 import 'package:proyecto/features/history/presentation/views/history_screen.dart';
@@ -58,7 +67,7 @@ class AppRouter {
       // --- RUTAS PÚBLICAS (AUTH) ---
       GoRoute(
         path: '/login',
-        name: 'login', // Solo debe aparecer una vez aquí
+        name: 'login',
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
@@ -82,6 +91,40 @@ class AppRouter {
         path: '/admin',
         name: 'adminDashboard',
         builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/admin/create-workshop',
+        name: 'createWorkshop',
+        builder: (context, state) => const CreateWorkshopScreen(),
+      ),
+      GoRoute(
+        path: '/admin/edit-workshop',
+        name: 'editWorkshop',
+        builder: (context, state) {
+          final workshop = state.extra as Workshop;
+          return EditWorkshopScreen(workshop: workshop);
+        },
+      ),
+      GoRoute(
+        path: '/admin/workshops/:id/schedule',
+        name: 'manageSchedule',
+        builder: (context, state) {
+          final workshopId = state.pathParameters['id']!;
+          return ManageScheduleScreen(workshopId: workshopId);
+        },
+      ),
+      GoRoute(
+        path: '/admin/workshops/:id/specialties',
+        name: 'manageSpecialties',
+        builder: (context, state) {
+          final workshopId = state.pathParameters['id']!;
+          return ManageSpecialtiesScreen(workshopId: workshopId);
+        },
+      ),
+      GoRoute(
+        path: '/admin/add-service',
+        name: 'adminAddService',
+        builder: (context, state) => const AdminAddMaintenanceScreen(),
       ),
 
       // --- NAVEGACIÓN PRINCIPAL CLIENTE (SHELL) ---
@@ -121,12 +164,20 @@ class AppRouter {
         name: 'diagnosis',
         builder: (context, state) => const DiagnosisChatScreen(),
       ),
+      GoRoute(
+        path: '/diagnosis/history',
+        name: 'diagnosisHistory',
+        builder: (context, state) => const DiagnosisHistoryScreen(),
+      ),
 
       // Talleres
       GoRoute(
         path: '/workshops',
         name: 'workshops',
-        builder: (context, state) => const WorkshopSearchScreen(),
+        builder: (context, state) {
+          final selectionMode = state.uri.queryParameters['selectionMode'] == 'true';
+          return WorkshopSearchScreen(selectionMode: selectionMode);
+        },
       ),
       GoRoute(
         path: '/workshops/details',
@@ -141,7 +192,7 @@ class AppRouter {
       GoRoute(
         path: '/garage/add',
         name: 'addVehicle',
-        builder: (context, state) => const AddVehicleScreen(), // Sin wrapper, ya es global
+        builder: (context, state) => const AddVehicleScreen(),
       ),
       GoRoute(
         path: '/garage/details',
@@ -160,11 +211,42 @@ class AppRouter {
         },
       ),
 
-      // Citas
+      // Citas (antiguo - mantener para compatibilidad)
       GoRoute(
         path: '/appointments/add',
         name: 'addAppointment',
-        builder: (context, state) => const AddEditAppointmentScreen(), // Sin wrapper
+        builder: (context, state) => const AddEditAppointmentScreen(),
+      ),
+
+      // Nuevas rutas de Appointments
+      GoRoute(
+        path: '/appointments/create',
+        name: 'createAppointment',
+        builder: (context, state) {
+          final vehicleId = state.uri.queryParameters['vehicleId'];
+          final workshopId = state.uri.queryParameters['workshopId'];
+          final diagnosisId = state.uri.queryParameters['diagnosisId'];
+          return CreateAppointmentImprovedScreen(
+            vehicleId: vehicleId,
+            workshopId: workshopId,
+            diagnosisId: diagnosisId,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/appointments/detail/:id',
+        name: 'appointmentDetail',
+        builder: (context, state) {
+          final appointmentId = state.pathParameters['id']!;
+          return AppointmentDetailScreen(appointmentId: appointmentId);
+        },
+      ),
+
+      // Notificaciones
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
 
       // Historial
@@ -176,7 +258,7 @@ class AppRouter {
       GoRoute(
         path: '/history/add',
         name: 'addHistory',
-        builder: (context, state) => const AddMaintenanceScreenWrapper(),
+        builder: (context, state) => const AddMaintenanceScreen(),
       ),
 
       // Recordatorios

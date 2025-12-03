@@ -6,8 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-// --- CORRECCIÓN: La clase Wrapper ha sido eliminada ---
-
 class AddVehicleScreen extends StatefulWidget {
   const AddVehicleScreen({super.key});
 
@@ -17,16 +15,25 @@ class AddVehicleScreen extends StatefulWidget {
 
 class _AddVehicleScreenState extends State<AddVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _makeController = TextEditingController();
+  // Controllers for text fields
   final _modelController = TextEditingController();
   final _yearController = TextEditingController();
   final _plateController = TextEditingController();
   final _mileageController = TextEditingController();
   final _imageUrlController = TextEditingController();
 
+  // List of car brands for the dropdown
+  final List<String> _carBrands = [
+    'Honda', 'Toyota', 'Nissan', 'Mazda', 'Chevrolet', 
+    'Ford', 'Volkswagen', 'BMW', 'Mercedes-Benz', 'Audi', 
+    'Kia', 'Hyundai', 'Subaru', 'Peugeot', 'Renault'
+  ];
+  
+  // Selected brand
+  String? _selectedMake;
+
   @override
   void dispose() {
-    _makeController.dispose();
     _modelController.dispose();
     _yearController.dispose();
     _plateController.dispose();
@@ -39,7 +46,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     if (_formKey.currentState!.validate()) {
       final newVehicle = Vehicle(
         id: Random().nextInt(10000).toString(),
-        make: _makeController.text,
+        make: _selectedMake!, // Use the selected brand
         model: _modelController.text,
         year: int.parse(_yearController.text),
         plate: _plateController.text,
@@ -48,7 +55,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             ? _imageUrlController.text
             : 'assets/images/civic.jpg',
       );
-      // Ahora context.read<GarageBloc>() funcionará porque el BLoC es global
+      
       context.read<GarageBloc>().add(AddVehicle(newVehicle));
       context.pop();
     }
@@ -68,15 +75,25 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextFormField(
-                  controller: _makeController,
+                // Brand Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedMake,
                   decoration: const InputDecoration(
                     label: Text('Marca'),
                     prefixIcon: Icon(Icons.factory_outlined),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
+                  items: _carBrands.map((brand) {
+                    return DropdownMenuItem(
+                      value: brand,
+                      child: Text(brand),
+                    );
+                  }).toList(),
+                  onChanged: (value) => setState(() => _selectedMake = value),
+                  validator: (value) => value == null ? 'Campo requerido' : null,
                 ),
                 const SizedBox(height: 20),
+                
+                // Model Input
                 TextFormField(
                   controller: _modelController,
                   decoration: const InputDecoration(
@@ -86,6 +103,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
                 ),
                 const SizedBox(height: 20),
+                
+                // Year Input
                 TextFormField(
                   controller: _yearController,
                   decoration: const InputDecoration(
@@ -96,6 +115,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
                 ),
                 const SizedBox(height: 20),
+                
+                // Plate Input
                 TextFormField(
                   controller: _plateController,
                   decoration: const InputDecoration(
@@ -106,6 +127,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
                 ),
                 const SizedBox(height: 20),
+                
+                // Mileage Input
                 TextFormField(
                   controller: _mileageController,
                   decoration: const InputDecoration(
@@ -116,6 +139,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
                 ),
                 const SizedBox(height: 20),
+                
+                // Image URL Input
                 TextFormField(
                   controller: _imageUrlController,
                   decoration: const InputDecoration(
@@ -124,6 +149,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   ),
                 ),
                 const SizedBox(height: 48),
+                
+                // Submit Button
                 ElevatedButton(
                   onPressed: _submitVehicle,
                   child: const Text('GUARDAR VEHÍCULO'),

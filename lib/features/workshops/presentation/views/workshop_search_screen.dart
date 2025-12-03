@@ -7,54 +7,64 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 class WorkshopSearchScreen extends StatefulWidget {
-  const WorkshopSearchScreen({super.key});
+  final bool selectionMode;
+
+  const WorkshopSearchScreen({
+    super.key,
+    this.selectionMode = false,
+  });
 
   @override
   State<WorkshopSearchScreen> createState() => _WorkshopSearchScreenState();
 }
 
 class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
-  // --- CORRECCIÓN CLAVE: Obtenemos la instancia del repositorio desde el Service Locator ---
-  // Esto nos da la versión conectada al backend, no la de datos simulados.
   final WorkshopRepository _repository = sl<WorkshopRepository>();
-  late final Future<List<Workshop>> _workshopsFuture;
+  late Future<List<Workshop>> _workshopsFuture;
+
+  // Filtros
+  double? _minRating;
+  String? _specialtyType;
 
   @override
   void initState() {
     super.initState();
-    // La llamada al método no cambia, pero ahora obtendrá los datos del backend real.
-    _workshopsFuture = _repository.fetchWorkshops();
+    _loadWorkshops();
+  }
+
+  void _loadWorkshops() {
+    setState(() {
+      _workshopsFuture = _repository.fetchWorkshops(
+        minRating: _minRating,
+        specialtyType: _specialtyType,
+      );
+    });
   }
 
   void _showFilterModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Filtros', style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 20),
-              const Text('Ordenar por:'),
-              const Wrap(
-                spacing: 8.0,
-                children: [
-                  Chip(label: Text('Relevancia')),
-                  Chip(label: Text('Distancia')),
-                  Chip(label: Text('Calificación')),
-                ],
+              const Text('Filtrar por Calificación Mínima'),
+              Slider(
+                value: _minRating ?? 0,
+                min: 0,
+                max: 5,
+                divisions: 5,
+                label: (_minRating ?? 0).toString(),
+                onChanged: (v) => setState(() => _minRating = v == 0 ? null : v),
               ),
-              const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Aplicar Filtros'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _loadWorkshops(); // Recargar con filtros
+                },
+                child: const Text('Aplicar'),
               )
             ],
           ),
@@ -62,12 +72,14 @@ class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
       },
     );
   }
-
+  
+  // ... (el resto del build es igual que tu archivo actual, solo asegúrate de usar _workshopsFuture)
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+      // ... copia el build anterior
+       return Scaffold(
       appBar: AppBar(
-        title: const Text('Buscar Talleres'),
+        title: Text(widget.selectionMode ? 'Seleccionar Taller' : 'Buscar Talleres'),
       ),
       body: Column(
         children: [
@@ -97,16 +109,7 @@ class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
-                  // Muestra un error más descriptivo si la llamada a la API falla
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'No se pudieron cargar los talleres. Verifica tu conexión a internet.\n\nError: ${snapshot.error}',
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  );
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(child: Text('No se encontraron talleres.'));
                 }
@@ -119,7 +122,16 @@ class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
                     final workshop = workshops[index];
                     return GestureDetector(
                       onTap: () {
-                        context.push('/workshops/details', extra: workshop);
+                        if (widget.selectionMode) {
+                          // Modo selección: retornar el taller seleccionado
+                          context.pop({
+                            'id': workshop.id,
+                            'name': workshop.name,
+                          });
+                        } else {
+                          // Modo normal: navegar al detalle
+                          context.push('/workshops/details', extra: workshop);
+                        }
                       },
                       child: WorkshopListItem(workshop: workshop)
                           .animate()

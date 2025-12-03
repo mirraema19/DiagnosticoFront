@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:proyecto/features/appointments/data/models/reminder_model.dart';
 import 'package:proyecto/features/appointments/presentation/bloc/reminders/reminders_bloc.dart';
 
+// Wrapper para inyección de dependencias
 class AddReminderScreenWrapper extends StatelessWidget {
   const AddReminderScreenWrapper({super.key});
   @override
@@ -27,14 +28,14 @@ class AddReminderScreen extends StatefulWidget {
 class _AddReminderScreenState extends State<AddReminderScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  // Campos del formulario
+  // Controladores
   String? _selectedServiceType;
   final _descriptionController = TextEditingController();
-  String _dueType = 'MILEAGE'; // Por defecto Kilometraje
+  String _dueType = 'MILEAGE'; // Valor por defecto: Kilometraje
   final _mileageController = TextEditingController();
   DateTime? _selectedDate;
 
-  // Opciones de servicio (Mismas que en Mantenimiento)
+  // Opciones de servicio (Mismo Enum que el backend)
   final Map<String, String> _serviceOptions = {
     'OIL_CHANGE': 'Cambio de Aceite',
     'TIRE_ROTATION': 'Rotación de Llantas',
@@ -47,27 +48,42 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    // Determinar el valor de vencimiento según el tipo
+    // Validación extra para la fecha
+    if (_dueType == 'DATE' && _selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor selecciona una fecha')),
+      );
+      return;
+    }
+
+    // PREPARAR EL VALOR (dueValue)
     String finalDueValue = '';
     if (_dueType == 'MILEAGE') {
-      finalDueValue = _mileageController.text;
+      // Si es kilometraje, enviamos el número como string: "50000"
+      finalDueValue = _mileageController.text; 
     } else {
-      // Si es fecha, formatear a ISO 8601 string
+      // Si es fecha, enviamos formato ISO: "2025-11-25T..."
       finalDueValue = _selectedDate!.toIso8601String();
     }
 
     final newReminder = Reminder(
       id: Random().nextInt(1000).toString(),
-      vehicleId: '', // Se asigna en el repositorio
+      vehicleId: '', // El repositorio asignará el vehículo principal
       serviceType: _selectedServiceType!,
       description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
       dueType: _dueType,
       dueValue: finalDueValue,
-      status: 'PENDING', // Estado inicial por defecto
+      status: 'PENDING',
       createdAt: DateTime.now(),
     );
 
+    // Enviamos al BLoC
     context.read<RemindersBloc>().add(AddReminder(newReminder));
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Recordatorio creado exitosamente')),
+    );
+    
     context.pop();
   }
 
@@ -80,28 +96,45 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Tipo de Servicio
+              const Text(
+                'Configura cuándo quieres recibir el aviso.',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+
+              // 1. TIPO DE SERVICIO
               DropdownButtonFormField<String>(
                 value: _selectedServiceType,
-                decoration: const InputDecoration(labelText: 'Servicio a Recordar', prefixIcon: Icon(Icons.build)),
+                decoration: const InputDecoration(
+                  labelText: 'Servicio a Recordar',
+                  prefixIcon: Icon(Icons.build),
+                ),
                 items: _serviceOptions.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
                 onChanged: (v) => setState(() => _selectedServiceType = v),
                 validator: (v) => v == null ? 'Requerido' : null,
               ),
               const SizedBox(height: 16),
 
-              // 2. Descripción
+              // 2. DESCRIPCIÓN
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Descripción (Opcional)', prefixIcon: Icon(Icons.notes)),
+                decoration: const InputDecoration(
+                  labelText: 'Nota (Opcional)',
+                  prefixIcon: Icon(Icons.notes),
+                  hintText: 'Ej: Usar aceite sintético',
+                ),
               ),
               const SizedBox(height: 16),
 
-              // 3. Tipo de Vencimiento
+              // 3. TIPO DE VENCIMIENTO (Kilometraje o Fecha)
               DropdownButtonFormField<String>(
                 value: _dueType,
-                decoration: const InputDecoration(labelText: 'Recordar por', prefixIcon: Icon(Icons.rule)),
+                decoration: const InputDecoration(
+                  labelText: 'Recordar por...',
+                  prefixIcon: Icon(Icons.rule),
+                ),
                 items: const [
                   DropdownMenuItem(value: 'MILEAGE', child: Text('Kilometraje')),
                   DropdownMenuItem(value: 'DATE', child: Text('Fecha')),
@@ -109,7 +142,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 onChanged: (v) {
                   setState(() {
                     _dueType = v!;
-                    // Limpiamos los valores al cambiar el tipo para evitar confusión
+                    // Limpiamos los campos opuestos al cambiar
                     _mileageController.clear();
                     _selectedDate = null;
                   });
@@ -117,11 +150,16 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 4. Valor de Vencimiento (Dinámico)
+              // 4. INPUT DINÁMICO (Depende de la selección anterior)
               if (_dueType == 'MILEAGE')
                 TextFormField(
                   controller: _mileageController,
-                  decoration: const InputDecoration(labelText: 'Kilometraje Objetivo', prefixIcon: Icon(Icons.speed)),
+                  decoration: const InputDecoration(
+                    labelText: 'Kilometraje Objetivo',
+                    hintText: 'Ej: 50000',
+                    prefixIcon: Icon(Icons.speed),
+                    helperText: 'Te avisaremos cuando tu auto se acerque a este kilometraje.',
+                  ),
                   keyboardType: TextInputType.number,
                   validator: (v) => v!.isEmpty ? 'Requerido' : null,
                 )
@@ -131,33 +169,31 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     _selectedDate == null ? 'Seleccionar Fecha' : DateFormat.yMMMd('es_ES').format(_selectedDate!),
                     style: TextStyle(color: _selectedDate == null ? Colors.grey[600] : Colors.black),
                   ),
-                  leading: const Icon(Icons.calendar_today),
+                  leading: const Icon(Icons.calendar_month),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(color: Colors.grey.shade400),
                   ),
+                  tileColor: Colors.white,
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: DateTime.now().add(const Duration(days: 30)),
+                      initialDate: DateTime.now().add(const Duration(days: 90)), // Sugerir 3 meses
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
                     );
                     if (picked != null) setState(() => _selectedDate = picked);
                   },
                 ),
-                // Validación manual para la fecha porque no es un TextFormField
-                if (_dueType == 'DATE' && _selectedDate == null)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8.0, left: 12.0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text('La fecha es requerida', style: TextStyle(color: Colors.red, fontSize: 12)),
-                    ),
-                  ),
 
-              const SizedBox(height: 32),
-              ElevatedButton(onPressed: _submit, child: const Text('CREAR RECORDATORIO')),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submit,
+                  child: const Text('CREAR RECORDATORIO'),
+                ),
+              ),
             ],
           ),
         ),

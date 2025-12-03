@@ -24,13 +24,7 @@ class VehicleSummaryCard extends StatelessWidget {
             color: Colors.grey.shade200,
             width: double.infinity,
             height: 200,
-            child: Image.asset(
-              vehicle.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(child: Icon(Icons.image_not_supported_outlined, size: 50, color: Colors.grey));
-              },
-            ),
+            child: _buildVehicleImage(),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -52,5 +46,36 @@ class VehicleSummaryCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildVehicleImage() {
+    if (vehicle.imageUrl.startsWith('http')) {
+      return Image.network(
+        vehicle.imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(child: Icon(Icons.broken_image_outlined, size: 50, color: Colors.grey));
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          );
+        },
+      );
+    } else {
+      return Image.asset(
+        vehicle.imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback si no encuentra el asset
+          return const Center(child: Icon(Icons.image_not_supported_outlined, size: 50, color: Colors.grey));
+        },
+      );
+    }
   }
 }

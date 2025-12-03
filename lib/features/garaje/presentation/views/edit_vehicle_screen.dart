@@ -16,7 +16,6 @@ class EditVehicleScreen extends StatefulWidget {
 class _EditVehicleScreenState extends State<EditVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controladores para pre-llenar y capturar los datos del formulario
   late final TextEditingController _makeController;
   late final TextEditingController _modelController;
   late final TextEditingController _yearController;
@@ -27,7 +26,6 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
   @override
   void initState() {
     super.initState();
-    // Inicializamos los controladores con los datos del vehículo que se está editando
     _makeController = TextEditingController(text: widget.vehicle.make);
     _modelController = TextEditingController(text: widget.vehicle.model);
     _yearController = TextEditingController(text: widget.vehicle.year.toString());
@@ -48,12 +46,9 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
   }
 
   void _submitUpdate() {
-    // 1. Validamos que el formulario esté correcto
     if (_formKey.currentState!.validate()) {
-      // 2. Creamos un nuevo objeto Vehicle con los datos actualizados del formulario
-      //    Es crucial mantener el ID original para que el repositorio sepa cuál actualizar.
       final updatedVehicle = Vehicle(
-        id: widget.vehicle.id, // Se mantiene el ID original
+        id: widget.vehicle.id,
         make: _makeController.text,
         model: _modelController.text,
         year: int.parse(_yearController.text),
@@ -61,19 +56,54 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
         mileage: int.parse(_mileageController.text),
         imageUrl: _imageUrlController.text.isNotEmpty
             ? _imageUrlController.text
-            : 'assets/images/car.png', // Fallback si la URL se borra
+            : 'assets/images/car.png',
       );
 
-      // 3. Enviamos el evento 'UpdateVehicle' al GarageBloc con el vehículo actualizado
       context.read<GarageBloc>().add(UpdateVehicle(updatedVehicle));
-
-      // 4. Regresamos a la pantalla de detalles y luego a la lista del garaje.
-      //    Al volver a la lista, ya mostrará los datos actualizados.
-      if (mounted) {
-        context.pop(); // Cierra la pantalla de edición
-        context.pop(); // Cierra la pantalla de detalles
-      }
+      
+      // Regresamos a la lista principal
+      context.go('/garage'); 
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vehículo actualizado correctamente')),
+      );
     }
+  }
+
+  // --- NUEVA FUNCIÓN PARA ELIMINAR ---
+  void _confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('¿Eliminar Vehículo?'),
+          content: Text('¿Estás seguro de que quieres eliminar tu ${widget.vehicle.make} ${widget.vehicle.model}? Esta acción no se puede deshacer.'),
+          actions: [
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                // 1. Disparamos el evento DELETE al BLoC
+                context.read<GarageBloc>().add(DeleteVehicle(widget.vehicle.id));
+                
+                // 2. Cerramos el diálogo
+                Navigator.of(context).pop();
+                
+                // 3. Navegamos de vuelta a la lista (Mi Garaje) usando .go para limpiar el stack
+                context.go('/garage');
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Vehículo eliminado')),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -81,6 +111,13 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Editar Vehículo'),
+        actions: [
+          // Opción extra: Botón de borrar también en la AppBar
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: _confirmDelete,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Form(
@@ -92,68 +129,65 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
               children: [
                 TextFormField(
                   controller: _makeController,
-                  decoration: const InputDecoration(
-                    label: Text('Marca'),
-                    prefixIcon: Icon(Icons.factory_outlined),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Marca'),
                   validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _modelController,
-                  decoration: const InputDecoration(
-                    label: Text('Modelo'),
-                    prefixIcon: Icon(Icons.directions_car_outlined),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Modelo'),
                   validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _yearController,
-                  decoration: const InputDecoration(
-                    label: Text('Año'),
-                    prefixIcon: Icon(Icons.calendar_today_outlined),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Año'),
                   keyboardType: TextInputType.number,
                   validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _plateController,
-                  decoration: const InputDecoration(
-                    label: Text('Placa'),
-                    prefixIcon: Icon(Icons.pin_outlined),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Placa'),
                   textCapitalization: TextCapitalization.characters,
                   validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _mileageController,
-                  decoration: const InputDecoration(
-                    label: Text('Kilometraje'),
-                    prefixIcon: Icon(Icons.speed_outlined),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Kilometraje'),
                   keyboardType: TextInputType.number,
                   validator: (value) => value!.isEmpty ? 'Campo requerido' : null,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _imageUrlController,
-                  decoration: const InputDecoration(
-                    label: Text('URL de la Imagen (Opcional)'),
-                    prefixIcon: Icon(Icons.image_outlined),
-                  ),
+                  decoration: const InputDecoration(labelText: 'URL de la Imagen (Opcional)'),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
+                
+                // Botón de Actualizar
                 ElevatedButton(
                   onPressed: _submitUpdate,
                   child: const Text('ACTUALIZAR DATOS'),
                 ),
-              ]
-                  .animate(interval: 100.ms)
-                  .fadeIn(duration: 400.ms, delay: 200.ms)
-                  .slideY(begin: 0.5, end: 0.0),
+
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
+
+                // --- NUEVO BOTÓN DE ELIMINAR (Zona de peligro) ---
+                OutlinedButton.icon(
+                  onPressed: _confirmDelete,
+                  icon: const Icon(Icons.delete_forever),
+                  label: const Text('ELIMINAR VEHÍCULO'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
