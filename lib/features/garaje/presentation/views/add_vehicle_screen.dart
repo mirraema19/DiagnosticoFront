@@ -77,7 +77,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               children: [
                 // Brand Dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedMake,
+                  initialValue: _selectedMake,
                   decoration: const InputDecoration(
                     label: Text('Marca'),
                     prefixIcon: Icon(Icons.factory_outlined),

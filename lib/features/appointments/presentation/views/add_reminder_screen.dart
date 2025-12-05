@@ -106,7 +106,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
               // 1. TIPO DE SERVICIO
               DropdownButtonFormField<String>(
-                value: _selectedServiceType,
+                initialValue: _selectedServiceType,
                 decoration: const InputDecoration(
                   labelText: 'Servicio a Recordar',
                   prefixIcon: Icon(Icons.build),
@@ -130,7 +130,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
               // 3. TIPO DE VENCIMIENTO (Kilometraje o Fecha)
               DropdownButtonFormField<String>(
-                value: _dueType,
+                initialValue: _dueType,
                 decoration: const InputDecoration(
                   labelText: 'Recordar por...',
                   prefixIcon: Icon(Icons.rule),

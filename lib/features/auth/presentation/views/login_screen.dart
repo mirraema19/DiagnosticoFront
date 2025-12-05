@@ -1,6 +1,5 @@
 import 'package:proyecto/core/services/service_locator.dart';
 import 'package:proyecto/core/theme/app_theme.dart';
-import 'package:proyecto/features/auth/data/models/user_model.dart';
 import 'package:proyecto/features/auth/data/repositories/auth_repository.dart';
 import 'package:proyecto/features/auth/presentation/bloc/auth_bloc/auth_bloc.dart';
 import 'package:proyecto/features/auth/presentation/bloc/login_bloc/login_bloc.dart';

@@ -152,25 +152,53 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 }
 
 // ... (AppointmentsTab y StatsTab quedan igual)
-class AppointmentsTab extends StatelessWidget {
+class AppointmentsTab extends StatefulWidget {
   const AppointmentsTab({super.key});
+
+  @override
+  State<AppointmentsTab> createState() => _AppointmentsTabState();
+}
+
+class _AppointmentsTabState extends State<AppointmentsTab> {
+  @override
+  void initState() {
+    super.initState();
+    // Cargar las citas del taller cuando se crea el widget
+    _loadAppointments();
+  }
+
+  void _loadAppointments() {
+    // TODO: Implementar el BLoC de appointments para talleres
+    // Por ahora, usamos el BLoC general de appointments que filtra por usuario
+    // context.read<AppointmentsBloc>().add(LoadAppointments());
+  }
+
   @override
   Widget build(BuildContext context) {
-     return const Center(
+     return Center(
        child: Column(
          mainAxisAlignment: MainAxisAlignment.center,
          children: [
-           Icon(Icons.calendar_month_outlined, size: 80, color: Colors.grey),
-           SizedBox(height: 16),
-           Text("Agenda de Citas", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-           SizedBox(height: 8),
-           Padding(
+           const Icon(Icons.calendar_month_outlined, size: 80, color: Colors.grey),
+           const SizedBox(height: 16),
+           const Text(
+             "Agenda de Citas",
+             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
+           ),
+           const SizedBox(height: 8),
+           const Padding(
              padding: EdgeInsets.symmetric(horizontal: 32.0),
              child: Text(
-               "Aquí verás las solicitudes de citas.\nUsa 'Nuevo Servicio' para registrar en bitácora.",
+               "Aquí verás las solicitudes de citas de tus clientes.",
                textAlign: TextAlign.center,
                style: TextStyle(color: Colors.grey),
              ),
+           ),
+           const SizedBox(height: 24),
+           ElevatedButton.icon(
+             onPressed: () => context.push('/admin/appointments'),
+             icon: const Icon(Icons.event_note),
+             label: const Text('Ver Mis Citas del Taller'),
            ),
          ],
        ),

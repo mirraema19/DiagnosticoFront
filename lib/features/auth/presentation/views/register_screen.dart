@@ -216,7 +216,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
-                value: _selectedRole,
+                initialValue: _selectedRole,
                 decoration: const InputDecoration(labelText: 'Tipo de Cuenta', prefixIcon: Icon(Icons.account_box)),
                 items: const [
                   DropdownMenuItem(value: 'VEHICLE_OWNER', child: Text('Dueño de Vehículo')),

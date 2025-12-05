@@ -28,7 +28,7 @@ class WorkshopAdminRemoteDataSource {
           'sortBy': sortBy,
         },
       );
-      return PaginatedReviewsModel.fromJson(response.data);
+      return PaginatedReviewsModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -43,7 +43,7 @@ class WorkshopAdminRemoteDataSource {
       final response = await apiClient.dio.get(
         '/$workshopId/reviews/statistics',
       );
-      return ReviewStatisticsModel.fromJson(response.data);
+      return ReviewStatisticsModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -63,7 +63,7 @@ class WorkshopAdminRemoteDataSource {
           'responseText': responseText,
         },
       );
-      return ReviewModel.fromJson(response.data);
+      return ReviewModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -104,7 +104,7 @@ class WorkshopAdminRemoteDataSource {
           'yearsOfExperience': yearsOfExperience,
         },
       );
-      return WorkshopSpecialtyModel.fromJson(response.data);
+      return WorkshopSpecialtyModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       // Error 409 = Especialidad duplicada
       if (e.response?.statusCode == 409) {
@@ -203,7 +203,10 @@ class WorkshopAdminRemoteDataSource {
   Exception _handleError(DioException e) {
     if (e.response != null) {
       final statusCode = e.response!.statusCode;
-      final message = e.response!.data['message'] ?? 'Error desconocido';
+      final data = e.response!.data;
+      final message = (data is Map<String, dynamic> && data['message'] != null)
+          ? data['message'].toString()
+          : 'Error desconocido';
 
       switch (statusCode) {
         case 400:

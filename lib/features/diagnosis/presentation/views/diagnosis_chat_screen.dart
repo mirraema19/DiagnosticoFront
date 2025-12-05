@@ -218,7 +218,7 @@ class _DiagnosisChatScreenState extends State<DiagnosisChatScreen> {
               ),
               const SizedBox(height: 32),
               DropdownButtonFormField<Vehicle>(
-                value: _selectedVehicle,
+                initialValue: _selectedVehicle,
                 decoration: const InputDecoration(
                   labelText: 'Seleccionar Vehículo',
                   border: OutlineInputBorder(),

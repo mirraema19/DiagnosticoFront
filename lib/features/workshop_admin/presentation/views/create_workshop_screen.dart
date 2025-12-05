@@ -250,7 +250,7 @@ class _CreateWorkshopScreenState extends State<CreateWorkshopScreen> {
               const SizedBox(height: 24),
 
               DropdownButtonFormField<String>(
-                value: _priceRange,
+                initialValue: _priceRange,
                 decoration: const InputDecoration(labelText: 'Rango de Precios'),
                 items: const [
                   DropdownMenuItem(value: 'LOW', child: Text('Económico (\$ - \$\$)')),

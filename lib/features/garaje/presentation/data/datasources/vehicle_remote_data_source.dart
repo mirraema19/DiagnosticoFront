@@ -24,11 +24,14 @@ class VehicleRemoteDataSource {
         '/vehicles',
         data: vehicle.toJson(),
       );
-      return Vehicle.fromJson(response.data);
+      return Vehicle.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      final errorMessage = (e.response?.data['message'] is List)
-          ? (e.response?.data['message'] as List).join('\n')
-          : e.response?.data['message'] ?? e.message;
+      final data = e.response?.data;
+      String errorMessage = e.message ?? 'Error desconocido';
+      if (data is Map<String, dynamic> && data['message'] != null) {
+        final message = data['message'];
+        errorMessage = (message is List) ? message.join('\n') : message.toString();
+      }
       throw Exception('Error al crear: $errorMessage');
     }
   }

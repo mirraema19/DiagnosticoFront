@@ -128,7 +128,8 @@ class SendMessageDto {
   Map<String, dynamic> toJson() {
     return {
       'message': message,
-      'attachments': attachments.map((e) => e.toJson()).toList(),
+      // Backend espera array de URLs (strings), no objetos
+      'attachments': attachments.map((e) => e.url).toList(),
     };
   }
 }

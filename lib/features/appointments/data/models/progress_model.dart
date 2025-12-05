@@ -29,13 +29,23 @@ class ProgressModel extends Equatable {
   });
 
   factory ProgressModel.fromJson(Map<String, dynamic> json) {
+    // Helper para extraer string de Value Objects
+    String _extractString(dynamic value, String fieldName) {
+      if (value == null) return '';
+      if (value is String) return value;
+      if (value is Map<String, dynamic> && value.containsKey('value')) {
+        return value['value'].toString();
+      }
+      return value.toString();
+    }
+
     return ProgressModel(
       id: json['id'] as String,
-      appointmentId: json['appointmentId'] as String,
-      stage: _parseStage(json['stage'] as String),
+      appointmentId: _extractString(json['appointmentId'], 'appointmentId'),
+      stage: _parseStage(_extractString(json['stage'], 'stage')),
       description: json['description'] as String,
       photos: (json['photos'] as List<dynamic>?)
-              ?.map((e) => e as String)
+              ?.map((e) => e.toString())
               .toList() ??
           [],
       estimatedCompletion: json['estimatedCompletion'] != null

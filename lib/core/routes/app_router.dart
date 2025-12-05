@@ -19,6 +19,8 @@ import 'package:proyecto/features/workshop_admin/presentation/views/edit_worksho
 import 'package:proyecto/features/workshop_admin/presentation/views/manage_schedule_screen.dart';
 import 'package:proyecto/features/workshop_admin/presentation/views/manage_specialties_screen.dart';
 import 'package:proyecto/features/workshop_admin/presentation/views/admin_add_maintenance_screen.dart';
+import 'package:proyecto/features/workshop_admin/presentation/views/workshop_appointments_screen.dart';
+import 'package:proyecto/features/workshop_admin/presentation/views/workshop_appointment_detail_screen.dart';
 
 // Home
 import 'package:proyecto/features/home/presentation/views/home_screen.dart';
@@ -125,6 +127,19 @@ class AppRouter {
         path: '/admin/add-service',
         name: 'adminAddService',
         builder: (context, state) => const AdminAddMaintenanceScreen(),
+      ),
+      GoRoute(
+        path: '/admin/appointments',
+        name: 'workshopAppointments',
+        builder: (context, state) => const WorkshopAppointmentsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/appointments/detail/:id',
+        name: 'workshopAppointmentDetail',
+        builder: (context, state) {
+          final appointmentId = state.pathParameters['id']!;
+          return WorkshopAppointmentDetailScreen(appointmentId: appointmentId);
+        },
       ),
 
       // --- NAVEGACIÓN PRINCIPAL CLIENTE (SHELL) ---

@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
             create: (context) => AppointmentsBloc(repository: sl<AppointmentRepository>())
               ..add(const LoadAppointments()),
           ),
-          BlocProvider(create: (context) => HistoryBloc()..add(LoadHistory())),
+          BlocProvider(create: (context) => HistoryBloc()..add(const LoadHistory())),
           BlocProvider(create: (context) => RemindersBloc()..add(LoadReminders())),
           BlocProvider(create: (context) => PasswordResetBloc()),
           BlocProvider(create: (context) => AdminWorkshopBloc()..add(LoadMyWorkshops())),
@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
               context.read<DiagnosisBloc>().add(const ClearDiagnosisState());
               context.read<GarageBloc>().add(LoadGarageData());
               context.read<AppointmentsBloc>().add(const LoadAppointments());
-              context.read<HistoryBloc>().add(LoadHistory());
+              context.read<HistoryBloc>().add(const LoadHistory());
             }
           },
           child: Builder(

@@ -23,16 +23,19 @@ class AuthRemoteDataSource {
       //   "tokens": { "accessToken": "...", "refreshToken": "..." }
       // }
       
-      final data = response.data;
+      final data = response.data as Map<String, dynamic>;
       return {
         'user': data['user'],
         'accessToken': data['tokens']['accessToken'],
         'refreshToken': data['tokens']['refreshToken'],
       };
     } on DioException catch (e) {
-      final errorMessage = (e.response?.data['message'] is List)
-          ? e.response?.data['message'].join('\n')
-          : e.response?.data['message'];
+      final responseData = e.response?.data;
+      String? errorMessage;
+      if (responseData is Map<String, dynamic> && responseData['message'] != null) {
+        final message = responseData['message'];
+        errorMessage = (message is List) ? message.join('\n') : message.toString();
+      }
       throw Exception('Error de inicio de sesión: ${errorMessage ?? e.message}');
     }
   }
@@ -60,19 +63,23 @@ class AuthRemoteDataSource {
       
       // El registro también devuelve tokens y usuario según el backend típico,
       // o puede devolver solo 201 Created. Asumimos que devuelve AuthResponseDto (login automático).
-      if (response.data['tokens'] != null) {
+      final data = response.data as Map<String, dynamic>;
+      if (data['tokens'] != null) {
          return {
-          'user': response.data['user'],
-          'accessToken': response.data['tokens']['accessToken'],
-          'refreshToken': response.data['tokens']['refreshToken'],
+          'user': data['user'],
+          'accessToken': data['tokens']['accessToken'],
+          'refreshToken': data['tokens']['refreshToken'],
         };
       }
-      return response.data;
-      
+      return data;
+
     } on DioException catch (e) {
-      final errorMessage = (e.response?.data['message'] is List)
-          ? e.response?.data['message'].join('\n')
-          : e.response?.data['message'];
+      final responseData = e.response?.data;
+      String? errorMessage;
+      if (responseData is Map<String, dynamic> && responseData['message'] != null) {
+        final message = responseData['message'];
+        errorMessage = (message is List) ? message.join('\n') : message.toString();
+      }
       throw Exception('Error de registro: ${errorMessage ?? e.message}');
     }
     
@@ -86,7 +93,10 @@ class AuthRemoteDataSource {
         data: {'email': email},
       );
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? e.message;
+      final responseData = e.response?.data;
+      final errorMessage = (responseData is Map<String, dynamic> && responseData['message'] != null)
+          ? responseData['message'].toString()
+          : e.message;
       throw Exception('Error al solicitar recuperación: $errorMessage');
     }
   }
@@ -102,7 +112,10 @@ class AuthRemoteDataSource {
         },
       );
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? e.message;
+      final responseData = e.response?.data;
+      final errorMessage = (responseData is Map<String, dynamic> && responseData['message'] != null)
+          ? responseData['message'].toString()
+          : e.message;
       throw Exception('Error al restablecer contraseña: $errorMessage');
     }
   }

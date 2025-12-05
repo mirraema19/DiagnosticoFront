@@ -33,7 +33,10 @@ class ReminderRemoteDataSource {
       );
     } on DioException catch (e) {
       // Capturamos mensaje de error del backend si existe
-      final errorMsg = e.response?.data['message'] ?? e.message;
+      final data = e.response?.data;
+      final errorMsg = (data is Map<String, dynamic> && data['message'] != null)
+          ? data['message'].toString()
+          : e.message;
       throw Exception('Error al crear recordatorio: $errorMsg');
     }
   }

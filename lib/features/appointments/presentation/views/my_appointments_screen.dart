@@ -191,26 +191,28 @@ class AppointmentListItem extends StatelessWidget {
 
   String _getServiceTypeName(ServiceType type) {
     switch (type) {
-      case ServiceType.BRAKE_INSPECTION:
-        return 'Inspección de Frenos';
       case ServiceType.OIL_CHANGE:
         return 'Cambio de Aceite';
       case ServiceType.TIRE_ROTATION:
         return 'Rotación de Llantas';
-      case ServiceType.ENGINE_DIAGNOSTIC:
-        return 'Diagnóstico de Motor';
-      case ServiceType.TRANSMISSION_SERVICE:
-        return 'Servicio de Transmisión';
+      case ServiceType.BRAKE_INSPECTION:
+        return 'Inspección de Frenos';
+      case ServiceType.BRAKE_REPLACEMENT:
+        return 'Reemplazo de Frenos';
+      case ServiceType.FILTER_REPLACEMENT:
+        return 'Reemplazo de Filtros';
       case ServiceType.BATTERY_REPLACEMENT:
         return 'Reemplazo de Batería';
-      case ServiceType.AIR_CONDITIONING:
-        return 'Aire Acondicionado';
-      case ServiceType.SUSPENSION_REPAIR:
-        return 'Reparación de Suspensión';
-      case ServiceType.EXHAUST_SYSTEM:
-        return 'Sistema de Escape';
-      case ServiceType.GENERAL_MAINTENANCE:
-        return 'Mantenimiento General';
+      case ServiceType.ALIGNMENT:
+        return 'Alineación y Balanceo';
+      case ServiceType.TRANSMISSION_SERVICE:
+        return 'Servicio de Transmisión';
+      case ServiceType.COOLANT_FLUSH:
+        return 'Cambio de Refrigerante';
+      case ServiceType.ENGINE_TUNEUP:
+        return 'Afinación de Motor';
+      case ServiceType.INSPECTION:
+        return 'Inspección General';
       case ServiceType.OTHER:
         return 'Otro';
     }
@@ -250,7 +252,7 @@ class AppointmentListItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          appointment.description,
+                          appointment.description ?? 'Sin descripción',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

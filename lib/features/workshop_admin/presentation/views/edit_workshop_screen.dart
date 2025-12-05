@@ -95,7 +95,7 @@ class _EditWorkshopScreenState extends State<EditWorkshopScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _priceRange,
+                initialValue: _priceRange,
                 decoration: const InputDecoration(labelText: 'Rango de Precios'),
                 items: const [
                   DropdownMenuItem(value: 'LOW', child: Text('Económico')),

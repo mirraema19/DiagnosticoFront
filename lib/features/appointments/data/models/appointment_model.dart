@@ -9,89 +9,20 @@ enum AppointmentStatus {
   CANCELLED,
 }
 
-// Tipos de servicio disponibles
+// Tipos de servicio disponibles (sincronizados con backend)
 enum ServiceType {
-  BRAKE_INSPECTION,
   OIL_CHANGE,
   TIRE_ROTATION,
-  ENGINE_DIAGNOSTIC,
-  TRANSMISSION_SERVICE,
+  BRAKE_INSPECTION,
+  BRAKE_REPLACEMENT,
+  FILTER_REPLACEMENT,
   BATTERY_REPLACEMENT,
-  AIR_CONDITIONING,
-  SUSPENSION_REPAIR,
-  EXHAUST_SYSTEM,
-  GENERAL_MAINTENANCE,
+  ALIGNMENT,
+  TRANSMISSION_SERVICE,
+  COOLANT_FLUSH,
+  ENGINE_TUNEUP,
+  INSPECTION,
   OTHER,
-}
-
-// Modelos auxiliares para datos relacionados
-class AppointmentVehicle {
-  final String id;
-  final String brand;
-  final String model;
-  final int year;
-  final String? licensePlate;
-
-  const AppointmentVehicle({
-    required this.id,
-    required this.brand,
-    required this.model,
-    required this.year,
-    this.licensePlate,
-  });
-
-  factory AppointmentVehicle.fromJson(Map<String, dynamic> json) {
-    return AppointmentVehicle(
-      id: json['id'] as String,
-      brand: json['brand'] as String,
-      model: json['model'] as String,
-      year: json['year'] as int,
-      licensePlate: json['licensePlate'] as String?,
-    );
-  }
-}
-
-class AppointmentWorkshop {
-  final String id;
-  final String name;
-  final String? phone;
-  final String? address;
-
-  const AppointmentWorkshop({
-    required this.id,
-    required this.name,
-    this.phone,
-    this.address,
-  });
-
-  factory AppointmentWorkshop.fromJson(Map<String, dynamic> json) {
-    return AppointmentWorkshop(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      phone: json['phone'] as String?,
-      address: json['address'] as String?,
-    );
-  }
-}
-
-class AppointmentUser {
-  final String id;
-  final String name;
-  final String email;
-
-  const AppointmentUser({
-    required this.id,
-    required this.name,
-    required this.email,
-  });
-
-  factory AppointmentUser.fromJson(Map<String, dynamic> json) {
-    return AppointmentUser(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String,
-    );
-  }
 }
 
 class AppointmentModel extends Equatable {
@@ -101,7 +32,7 @@ class AppointmentModel extends Equatable {
   final String workshopId;
   final String? diagnosisId;
   final ServiceType serviceType;
-  final String description;
+  final String? description;
   final AppointmentStatus status;
   final DateTime scheduledDate;
   final String scheduledTime;
@@ -109,16 +40,14 @@ class AppointmentModel extends Equatable {
   final double? estimatedCost;
   final double? finalCost;
   final String? cancelReason;
+  final String? cancelledBy;
   final DateTime? cancelledAt;
   final DateTime? completedAt;
   final String? notes;
+  final List<String> photos;
+  final List<String> documents;
   final DateTime createdAt;
   final DateTime updatedAt;
-
-  // Datos relacionados opcionales (populated por el backend)
-  final AppointmentVehicle? vehicle;
-  final AppointmentWorkshop? workshop;
-  final AppointmentUser? user;
 
   const AppointmentModel({
     required this.id,
@@ -127,7 +56,7 @@ class AppointmentModel extends Equatable {
     required this.workshopId,
     this.diagnosisId,
     required this.serviceType,
-    required this.description,
+    this.description,
     required this.status,
     required this.scheduledDate,
     required this.scheduledTime,
@@ -135,81 +64,146 @@ class AppointmentModel extends Equatable {
     this.estimatedCost,
     this.finalCost,
     this.cancelReason,
+    this.cancelledBy,
     this.cancelledAt,
     this.completedAt,
     this.notes,
+    this.photos = const [],
+    this.documents = const [],
     required this.createdAt,
     required this.updatedAt,
-    this.vehicle,
-    this.workshop,
-    this.user,
   });
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
-    // Helper para extraer ID de un campo que puede ser String o Map
-    String _extractId(dynamic field, String key) {
-      if (field == null) return '';
-      if (field is String) return field;
-      if (field is Map<String, dynamic>) return field['id'] as String;
-      return '';
+    // Helper para extraer valores String de forma segura
+    String _extractString(dynamic value, String fieldName) {
+      if (value == null) {
+        print('⚠️ Campo $fieldName es null');
+        return '';
+      }
+      if (value is String) return value;
+      if (value is Map<String, dynamic>) {
+        // Caso 1: Value Object con propiedad 'value'
+        if (value.containsKey('value')) {
+          return value['value'].toString();
+        }
+        // Caso 2: Objeto con 'id'
+        if (value.containsKey('id')) {
+          return value['id'].toString();
+        }
+        // Caso 3: Objeto con '_id'
+        if (value.containsKey('_id')) {
+          return value['_id'].toString();
+        }
+        print('⚠️ Campo $fieldName es un Map sin value/id/_id: $value');
+        return '';
+      }
+      return value.toString();
     }
 
-    // Helper para parsear objetos relacionados
-    AppointmentVehicle? _parseVehicle(dynamic vehicleData) {
-      if (vehicleData == null) return null;
-      if (vehicleData is Map<String, dynamic>) {
-        return AppointmentVehicle.fromJson(vehicleData);
+    // Helper para extraer valores String opcionales
+    String? _extractStringOptional(dynamic value, String fieldName) {
+      if (value == null) return null;
+      if (value is String) return value;
+      if (value is Map<String, dynamic>) {
+        // Caso 1: Value Object con propiedad 'value'
+        if (value.containsKey('value')) {
+          return value['value'].toString();
+        }
+        // Caso 2: Objeto con 'id'
+        if (value.containsKey('id')) {
+          return value['id'].toString();
+        }
+        // Caso 3: Objeto con '_id'
+        if (value.containsKey('_id')) {
+          return value['_id'].toString();
+        }
+        print('⚠️ Campo opcional $fieldName es un Map sin value/id/_id: $value');
+        return null;
       }
-      return null;
+      return value.toString();
     }
 
-    AppointmentWorkshop? _parseWorkshop(dynamic workshopData) {
-      if (workshopData == null) return null;
-      if (workshopData is Map<String, dynamic>) {
-        return AppointmentWorkshop.fromJson(workshopData);
+    // Helper para parsear DateTime de forma segura
+    DateTime _parseDateTime(dynamic value, String fieldName) {
+      try {
+        if (value == null) {
+          print('⚠️ Fecha $fieldName es null, usando DateTime.now()');
+          return DateTime.now();
+        }
+        if (value is String) return DateTime.parse(value);
+        if (value is DateTime) return value;
+        print('⚠️ Fecha $fieldName tiene tipo inesperado: ${value.runtimeType}');
+        return DateTime.now();
+      } catch (e) {
+        print('❌ Error parseando fecha $fieldName: $e');
+        return DateTime.now();
       }
-      return null;
     }
 
-    AppointmentUser? _parseUser(dynamic userData) {
-      if (userData == null) return null;
-      if (userData is Map<String, dynamic>) {
-        return AppointmentUser.fromJson(userData);
+    // Helper para parsear DateTime opcional
+    DateTime? _parseDateTimeOptional(dynamic value, String fieldName) {
+      try {
+        if (value == null) return null;
+        if (value is String) return DateTime.parse(value);
+        if (value is DateTime) return value;
+        print('⚠️ Fecha opcional $fieldName tiene tipo inesperado: ${value.runtimeType}');
+        return null;
+      } catch (e) {
+        print('❌ Error parseando fecha opcional $fieldName: $e');
+        return null;
       }
-      return null;
     }
+
+    print('📝 Parseando AppointmentModel desde JSON');
 
     return AppointmentModel(
-      id: json['id'] as String,
-      userId: _extractId(json['userId'] ?? json['user'], 'userId'),
-      vehicleId: _extractId(json['vehicleId'] ?? json['vehicle'], 'vehicleId'),
-      workshopId: _extractId(json['workshopId'] ?? json['workshop'], 'workshopId'),
-      diagnosisId: json['diagnosisId'] as String?,
-      serviceType: _parseServiceType(json['serviceType'] as String),
-      description: json['description'] as String,
-      status: _parseStatus(json['status'] as String),
-      scheduledDate: DateTime.parse(json['scheduledDate'] as String),
-      scheduledTime: json['scheduledTime'] as String,
-      estimatedDuration: json['estimatedDuration'] as int?,
+      id: _extractString(json['id'], 'id'),
+      userId: _extractString(json['userId'], 'userId'),
+      vehicleId: _extractString(json['vehicleId'], 'vehicleId'),
+      workshopId: _extractString(json['workshopId'], 'workshopId'),
+      diagnosisId: _extractStringOptional(json['diagnosisId'], 'diagnosisId'),
+      serviceType: _parseServiceType(_extractString(json['serviceType'], 'serviceType')),
+      description: _extractStringOptional(json['description'], 'description'),
+      status: _parseStatus(_extractString(json['status'], 'status')),
+      scheduledDate: _parseDateTime(json['scheduledDate'], 'scheduledDate'),
+      scheduledTime: _extractString(json['scheduledTime'], 'scheduledTime'),
+      estimatedDuration: json['estimatedDuration'] is int
+          ? json['estimatedDuration'] as int
+          : (json['estimatedDuration'] is num
+              ? (json['estimatedDuration'] as num).toInt()
+              : null),
       estimatedCost: json['estimatedCost'] != null
-          ? (json['estimatedCost'] as num).toDouble()
+          ? (json['estimatedCost'] is num
+              ? (json['estimatedCost'] as num).toDouble()
+              : (json['estimatedCost'] is String
+                  ? double.tryParse(json['estimatedCost'] as String)
+                  : (json['estimatedCost'] is Map<String, dynamic>
+                      ? (json['estimatedCost']['amount'] != null
+                          ? (json['estimatedCost']['amount'] as num).toDouble()
+                          : null)
+                      : null)))
           : null,
       finalCost: json['finalCost'] != null
-          ? (json['finalCost'] as num).toDouble()
+          ? (json['finalCost'] is num
+              ? (json['finalCost'] as num).toDouble()
+              : (json['finalCost'] is String
+                  ? double.tryParse(json['finalCost'] as String)
+                  : null))
           : null,
-      cancelReason: json['cancelReason'] as String?,
-      cancelledAt: json['cancelledAt'] != null
-          ? DateTime.parse(json['cancelledAt'] as String)
-          : null,
-      completedAt: json['completedAt'] != null
-          ? DateTime.parse(json['completedAt'] as String)
-          : null,
-      notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
-      vehicle: _parseVehicle(json['vehicle']),
-      workshop: _parseWorkshop(json['workshop']),
-      user: _parseUser(json['user']),
+      cancelReason: _extractStringOptional(json['cancelReason'], 'cancelReason'),
+      cancelledBy: _extractStringOptional(json['cancelledBy'], 'cancelledBy'),
+      cancelledAt: _parseDateTimeOptional(json['cancelledAt'], 'cancelledAt'),
+      completedAt: _parseDateTimeOptional(json['completedAt'], 'completedAt'),
+      notes: _extractStringOptional(json['notes'], 'notes'),
+      photos: json['photos'] is List
+              ? (json['photos'] as List).map((e) => e.toString()).toList()
+              : [],
+      documents: json['documents'] is List
+              ? (json['documents'] as List).map((e) => e.toString()).toList()
+              : [],
+      createdAt: _parseDateTime(json['createdAt'], 'createdAt'),
+      updatedAt: _parseDateTime(json['updatedAt'], 'updatedAt'),
     );
   }
 
@@ -229,9 +223,12 @@ class AppointmentModel extends Equatable {
       'estimatedCost': estimatedCost,
       'finalCost': finalCost,
       'cancelReason': cancelReason,
+      'cancelledBy': cancelledBy,
       'cancelledAt': cancelledAt?.toIso8601String(),
       'completedAt': completedAt?.toIso8601String(),
       'notes': notes,
+      'photos': photos,
+      'documents': documents,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -267,14 +264,14 @@ class AppointmentModel extends Equatable {
         estimatedCost,
         finalCost,
         cancelReason,
+        cancelledBy,
         cancelledAt,
         completedAt,
         notes,
+        photos,
+        documents,
         createdAt,
         updatedAt,
-        vehicle,
-        workshop,
-        user,
       ];
 }
 
@@ -317,20 +314,16 @@ class CreateAppointmentDto {
   }
 }
 
-// Modelo para actualizar una cita
+// Modelo para actualizar una cita (solo campos permitidos por el backend)
 class UpdateAppointmentDto {
   final String? scheduledDate;
   final String? scheduledTime;
   final String? description;
-  final int? estimatedDuration;
-  final double? estimatedCost;
 
   const UpdateAppointmentDto({
     this.scheduledDate,
     this.scheduledTime,
     this.description,
-    this.estimatedDuration,
-    this.estimatedCost,
   });
 
   Map<String, dynamic> toJson() {
@@ -338,8 +331,6 @@ class UpdateAppointmentDto {
     if (scheduledDate != null) data['scheduledDate'] = scheduledDate;
     if (scheduledTime != null) data['scheduledTime'] = scheduledTime;
     if (description != null) data['description'] = description;
-    if (estimatedDuration != null) data['estimatedDuration'] = estimatedDuration;
-    if (estimatedCost != null) data['estimatedCost'] = estimatedCost;
     return data;
   }
 }

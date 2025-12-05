@@ -25,7 +25,7 @@ class DiagnosisRemoteDataSource {
           'initialMessage': initialMessage,
         },
       );
-      return ChatResponseModel.fromJson(response.data);
+      return ChatResponseModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception('Error al crear sesión: ${e.message}');
     }
@@ -59,7 +59,7 @@ class DiagnosisRemoteDataSource {
   Future<DiagnosisSessionModel> getSessionById(String sessionId) async {
     try {
       final response = await dio.get('$baseUrl/sessions/$sessionId');
-      return DiagnosisSessionModel.fromJson(response.data);
+      return DiagnosisSessionModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception('Error al obtener sesión: ${e.message}');
     }
@@ -85,12 +85,12 @@ class DiagnosisRemoteDataSource {
     try {
       print('DiagnosisRemoteDataSource: Sending message to session $sessionId');
       print('DiagnosisRemoteDataSource: Content: $content');
-      
+
       final response = await dio.post(
         '$baseUrl/sessions/$sessionId/messages',
         data: {'content': content},
       );
-      return ChatResponseModel.fromJson(response.data);
+      return ChatResponseModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       print('DiagnosisRemoteDataSource: Error sending message: ${e.response?.statusCode} - ${e.response?.data}');
       throw Exception('Error al enviar mensaje: ${e.message}');
@@ -101,7 +101,7 @@ class DiagnosisRemoteDataSource {
   Future<ClassificationModel> classifyProblem(String sessionId) async {
     try {
       final response = await dio.post('$baseUrl/sessions/$sessionId/classify');
-      return ClassificationModel.fromJson(response.data);
+      return ClassificationModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception('Error al clasificar problema: ${e.message}');
     }
@@ -111,7 +111,7 @@ class DiagnosisRemoteDataSource {
   Future<UrgencyModel> getUrgency(String sessionId) async {
     try {
       final response = await dio.get('$baseUrl/sessions/$sessionId/urgency');
-      return UrgencyModel.fromJson(response.data);
+      return UrgencyModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception('Error al obtener urgencia: ${e.message}');
     }
@@ -121,7 +121,7 @@ class DiagnosisRemoteDataSource {
   Future<CostEstimateModel> getCostEstimate(String sessionId) async {
     try {
       final response = await dio.get('$baseUrl/sessions/$sessionId/cost-estimate');
-      return CostEstimateModel.fromJson(response.data);
+      return CostEstimateModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception('Error al obtener estimación de costos: ${e.message}');
     }

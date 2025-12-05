@@ -35,7 +35,10 @@ class MaintenanceRemoteDataSource {
         debugPrint('ℹ️ No se encontró historial (404). Esto es normal si es nuevo.');
         return [];
       }
-      final errorMessage = e.response?.data?['message'] ?? e.message;
+      final data = e.response?.data;
+      final errorMessage = (data is Map<String, dynamic> && data['message'] != null)
+          ? data['message'].toString()
+          : e.message;
       throw Exception('Error API: $errorMessage');
     } catch (e) {
       // Ya no devolvemos [] aquí, lanzamos el error para verlo en pantalla
@@ -66,8 +69,9 @@ class MaintenanceRemoteDataSource {
 
   String _extractErrorMessage(DioException e) {
     try {
-      if (e.response?.data != null && e.response!.data['message'] != null) {
-        final message = e.response!.data['message'];
+      final data = e.response?.data;
+      if (data != null && data is Map<String, dynamic> && data['message'] != null) {
+        final message = data['message'];
         if (message is List) return message.join('\n');
         return message.toString();
       }

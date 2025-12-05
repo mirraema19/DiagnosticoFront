@@ -7,20 +7,23 @@ import 'package:proyecto/features/appointments/data/models/progress_model.dart';
 import 'package:proyecto/features/appointments/presentation/bloc/appointments_bloc.dart';
 import 'package:intl/intl.dart';
 
-class AppointmentDetailScreen extends StatefulWidget {
+/// Pantalla de detalle de cita para WORKSHOP_ADMIN
+/// Incluye funcionalidades para agregar progreso, chat y completar cita
+class WorkshopAppointmentDetailScreen extends StatefulWidget {
   final String appointmentId;
 
-  const AppointmentDetailScreen({
+  const WorkshopAppointmentDetailScreen({
     super.key,
     required this.appointmentId,
   });
 
   @override
-  State<AppointmentDetailScreen> createState() =>
-      _AppointmentDetailScreenState();
+  State<WorkshopAppointmentDetailScreen> createState() =>
+      _WorkshopAppointmentDetailScreenState();
 }
 
-class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
+class _WorkshopAppointmentDetailScreenState
+    extends State<WorkshopAppointmentDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _messageController = TextEditingController();
@@ -38,6 +41,11 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
       if (!_tabController.indexIsChanging) {
         _onTabChanged(_tabController.index);
       }
+    });
+
+    // Cargar el appointment cuando inicia la pantalla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppointmentsBloc>().add(LoadAppointmentById(widget.appointmentId));
     });
   }
 
@@ -62,13 +70,10 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AppointmentsBloc(repository: sl())
-        ..add(LoadAppointmentById(widget.appointmentId)),
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
-          title: const Text('Detalle de Cita'),
-          backgroundColor: Colors.blue,
+          title: const Text('Detalle de Cita - Taller'),
+          backgroundColor: Colors.indigo,
           bottom: TabBar(
             controller: _tabController,
             tabs: const [
@@ -87,19 +92,6 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
               });
             }
 
-            // Actualizar appointment cuando se cancela
-            if (state is AppointmentCancelled) {
-              setState(() {
-                _currentAppointment = state.appointment;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Cita cancelada exitosamente'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-
             // Actualizar appointment cuando se completa
             if (state is AppointmentCompleted) {
               setState(() {
@@ -108,6 +100,28 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Cita completada exitosamente'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+
+            // Mostrar mensaje cuando se agrega progreso
+            if (state is ProgressAdded) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Progreso agregado exitosamente'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Recargar progreso automáticamente después de agregar
+              context.read<AppointmentsBloc>().add(LoadProgress(widget.appointmentId));
+            }
+
+            // Mostrar mensaje cuando se envía un mensaje
+            if (state is ChatMessageSent) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Mensaje enviado'),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -160,7 +174,6 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
             },
           ),
         ),
-      ),
     );
   }
 
@@ -189,8 +202,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
                   bold: true),
           ]),
           const SizedBox(height: 16),
-          if (appointment.status != AppointmentStatus.CANCELLED &&
-              appointment.status != AppointmentStatus.COMPLETED)
+          if (appointment.status == AppointmentStatus.IN_PROGRESS ||
+              appointment.status == AppointmentStatus.CONFIRMED)
             _buildActionButtons(context, appointment),
         ],
       ),
@@ -290,12 +303,12 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
       children: [
         ElevatedButton.icon(
           onPressed: () {
-            _showCancelDialog(context, appointment.id);
+            _showCompleteDialog(context, appointment.id);
           },
-          icon: const Icon(Icons.cancel),
-          label: const Text('Cancelar Cita'),
+          icon: const Icon(Icons.check_circle),
+          label: const Text('Completar Cita'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.green,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
@@ -305,50 +318,76 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
   }
 
   Widget _buildProgressTab(BuildContext context) {
-    print('🔄 [Cliente] _buildProgressTab construyéndose...');
-    return BlocConsumer<AppointmentsBloc, AppointmentsState>(
-      listenWhen: (previous, current) {
-        print('👂 [Cliente] listenWhen: ${previous.runtimeType} -> ${current.runtimeType}');
-        return true;
-      },
-      listener: (context, state) {
-        print('👂 [Cliente] Listener recibió: ${state.runtimeType}');
-      },
-      buildWhen: (previous, current) {
-        print('🏗️ [Cliente] buildWhen: ${previous.runtimeType} -> ${current.runtimeType}');
-        return true; // Siempre rebuild para debugging
-      },
-      builder: (context, state) {
-        print('🎨 [Cliente] UI Progreso recibió estado: ${state.runtimeType}');
+    return Stack(
+      children: [
+        BlocBuilder<AppointmentsBloc, AppointmentsState>(
+          buildWhen: (previous, current) {
+            // Solo rebuild cuando sea un estado relacionado con progreso o loading
+            final shouldBuild = current is ProgressLoaded ||
+                                current is AppointmentsLoading ||
+                                current is ProgressAdded;
+            print('🎨 buildWhen: ${current.runtimeType} -> shouldBuild: $shouldBuild');
+            return shouldBuild;
+          },
+          builder: (context, state) {
+            print('🎨 UI Progreso recibió estado: ${state.runtimeType}');
 
-        if (state is AppointmentsLoading) {
-          print('🎨 [Cliente] Mostrando loading...');
-          return const Center(child: CircularProgressIndicator());
-        }
+            if (state is AppointmentsLoading) {
+              print('🎨 Mostrando loading...');
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        if (state is ProgressLoaded) {
-          print('🎨 [Cliente] ProgressLoaded con ${state.progressList.length} items');
-          if (state.progressList.isEmpty) {
-            print('🎨 [Cliente] Lista vacía, mostrando mensaje...');
-            return const Center(
-              child: Text('No hay actualizaciones de progreso aún'),
-            );
-          }
+            if (state is ProgressLoaded) {
+              print('🎨 ProgressLoaded con ${state.progressList.length} items');
+              if (state.progressList.isEmpty) {
+                print('🎨 Lista vacía, mostrando mensaje...');
 
-          print('🎨 [Cliente] Mostrando ${state.progressList.length} items de progreso');
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: state.progressList.length,
-            itemBuilder: (context, index) {
-              final progress = state.progressList[index];
-              return _buildProgressCard(progress);
-            },
-          );
-        }
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.timeline, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No hay actualizaciones de progreso aún',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Presiona el botón + para agregar una actualización',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
-        print('🎨 [Cliente] Estado no reconocido, mostrando mensaje por defecto');
-        return const Center(child: Text('No hay datos de progreso'));
-      },
+              print('🎨 Mostrando lista de ${state.progressList.length} items');
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: state.progressList.length,
+                itemBuilder: (context, index) {
+                  final progress = state.progressList[index];
+                  return _buildProgressCard(progress);
+                },
+              );
+            }
+
+            print('🎨 Estado no reconocido, mostrando mensaje por defecto');
+            return const Center(child: Text('No hay datos de progreso'));
+          },
+        ),
+        // Botón flotante para agregar progreso
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton(
+            onPressed: () => _showAddProgressDialog(context),
+            backgroundColor: Colors.indigo,
+            child: const Icon(Icons.add),
+          ),
+        ),
+      ],
     );
   }
 
@@ -362,7 +401,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
           children: [
             Row(
               children: [
-                Icon(_getProgressIcon(progress.stage), color: Colors.blue),
+                Icon(_getProgressIcon(progress.stage), color: Colors.indigo),
                 const SizedBox(width: 8),
                 Text(
                   _getProgressStageName(progress.stage),
@@ -391,11 +430,6 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
       children: [
         Expanded(
           child: BlocBuilder<AppointmentsBloc, AppointmentsState>(
-            buildWhen: (previous, current) {
-              return current is ChatMessagesLoaded ||
-                     current is AppointmentsLoading ||
-                     current is ChatMessageSent;
-            },
             builder: (context, state) {
               if (state is AppointmentsLoading) {
                 return const Center(child: CircularProgressIndicator());
@@ -404,7 +438,22 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
               if (state is ChatMessagesLoaded) {
                 if (state.messages.isEmpty) {
                   return const Center(
-                    child: Text('No hay mensajes aún. Inicia la conversación.'),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'No hay mensajes aún',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Inicia la conversación con el cliente',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ],
+                    ),
                   );
                 }
 
@@ -429,10 +478,10 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
   }
 
   Widget _buildMessageBubble(ChatMessageModel message) {
-    final isCustomer = message.senderRole == SenderRole.customer;
+    final isMechanic = message.senderRole == SenderRole.mechanic;
 
     return Align(
-      alignment: isCustomer ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isMechanic ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -440,7 +489,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
           maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
         decoration: BoxDecoration(
-          color: isCustomer ? Colors.blue : Colors.grey[300],
+          color: isMechanic ? Colors.indigo : Colors.grey[300],
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -449,7 +498,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
             Text(
               message.message,
               style: TextStyle(
-                color: isCustomer ? Colors.white : Colors.black,
+                color: isMechanic ? Colors.white : Colors.black,
               ),
             ),
             const SizedBox(height: 4),
@@ -457,7 +506,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
               DateFormat('HH:mm').format(message.createdAt),
               style: TextStyle(
                 fontSize: 10,
-                color: isCustomer ? Colors.white70 : Colors.black54,
+                color: isMechanic ? Colors.white70 : Colors.black54,
               ),
             ),
           ],
@@ -485,7 +534,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
             child: TextField(
               controller: _messageController,
               decoration: const InputDecoration(
-                hintText: 'Escribe un mensaje...',
+                hintText: 'Escribe un mensaje al cliente...',
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
@@ -503,27 +552,117 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
               }
             },
             icon: const Icon(Icons.send),
-            color: Colors.blue,
+            color: Colors.indigo,
           ),
         ],
       ),
     );
   }
 
-  void _showCancelDialog(BuildContext context, String appointmentId) {
-    final reasonController = TextEditingController();
+  void _showAddProgressDialog(BuildContext context) {
+    final descriptionController = TextEditingController();
+    ProgressStage? selectedStage;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Agregar Actualización de Progreso'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<ProgressStage>(
+                  value: selectedStage,
+                  decoration: const InputDecoration(
+                    labelText: 'Etapa',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ProgressStage.values.map((stage) {
+                    return DropdownMenuItem(
+                      value: stage,
+                      child: Text(_getProgressStageName(stage)),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedStage = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción',
+                    border: OutlineInputBorder(),
+                    hintText: 'Ej: Reemplazando pastillas de freno...',
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (selectedStage != null && descriptionController.text.isNotEmpty) {
+                  final dto = CreateProgressDto(
+                    stage: selectedStage!,
+                    description: descriptionController.text,
+                  );
+                  context.read<AppointmentsBloc>().add(
+                    AddProgress(widget.appointmentId, dto)
+                  );
+                  Navigator.pop(dialogContext);
+                  // El BLoC recarga automáticamente después de agregar
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+              child: const Text('Agregar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCompleteDialog(BuildContext context, String appointmentId) {
+    final finalCostController = TextEditingController();
+    final notesController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Cancelar Cita'),
-        content: TextField(
-          controller: reasonController,
-          decoration: const InputDecoration(
-            labelText: 'Razón de cancelación',
-            border: OutlineInputBorder(),
+        title: const Text('Completar Cita'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: finalCostController,
+                decoration: const InputDecoration(
+                  labelText: 'Costo Final',
+                  border: OutlineInputBorder(),
+                  prefixText: '\$',
+                ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notas adicionales (opcional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
           ),
-          maxLines: 3,
         ),
         actions: [
           TextButton(
@@ -532,15 +671,22 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
           ),
           ElevatedButton(
             onPressed: () {
-              if (reasonController.text.isNotEmpty) {
-                context
-                    .read<AppointmentsBloc>()
-                    .add(CancelAppointment(appointmentId, reasonController.text));
-                Navigator.pop(dialogContext);
+              if (finalCostController.text.isNotEmpty) {
+                final finalCost = double.tryParse(finalCostController.text);
+                if (finalCost != null) {
+                  context.read<AppointmentsBloc>().add(
+                    CompleteAppointment(
+                      appointmentId,
+                      finalCost,
+                      notes: notesController.text.isNotEmpty ? notesController.text : null,
+                    )
+                  );
+                  Navigator.pop(dialogContext);
+                }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Confirmar'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Completar'),
           ),
         ],
       ),

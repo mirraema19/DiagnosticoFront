@@ -29,10 +29,10 @@ class _AdminWorkshopsScreenState extends State<AdminWorkshopsScreen> {
         }
         if (state is AdminLoaded) {
           if (state.workshops.isEmpty) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   // --- CORRECCIÓN AQUÍ: Usamos un icono estándar ---
                   Icon(Icons.store, size: 60, color: Colors.grey),
                   SizedBox(height: 16),

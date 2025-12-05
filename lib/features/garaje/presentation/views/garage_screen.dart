@@ -1,4 +1,3 @@
-import 'package:proyecto/features/garaje/presentation/data/models/vehicle_model.dart';
 import 'package:proyecto/features/garaje/presentation/bloc/garage_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

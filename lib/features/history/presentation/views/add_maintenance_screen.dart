@@ -81,7 +81,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
             children: [
               // --- Dropdown para Tipo de Servicio ---
               DropdownButtonFormField<String>(
-                value: _selectedServiceType,
+                initialValue: _selectedServiceType,
                 decoration: const InputDecoration(
                   labelText: 'Tipo de Servicio',
                   prefixIcon: Icon(Icons.build),

@@ -49,6 +49,7 @@ class AppointmentsBloc extends Bloc<AppointmentsEvent, AppointmentsState> {
       final appointments = await _repository.getAppointments(
         status: event.status,
         limit: event.limit,
+        workshopId: event.workshopId,
       );
       emit(AppointmentsLoaded(appointments));
     } catch (e) {
@@ -139,11 +140,15 @@ class AppointmentsBloc extends Bloc<AppointmentsEvent, AppointmentsState> {
     LoadProgress event,
     Emitter<AppointmentsState> emit,
   ) async {
+    print('📢 [BLoC] LoadProgress event recibido para: ${event.appointmentId}');
     emit(AppointmentsLoading());
     try {
       final progressList = await _repository.getProgress(event.appointmentId);
+      print('📢 [BLoC] Emitiendo ProgressLoaded con ${progressList.length} items');
       emit(ProgressLoaded(progressList));
+      print('📢 [BLoC] Estado actual después de emit: ${state.runtimeType}');
     } catch (e) {
+      print('📢 [BLoC] Error al cargar progreso: $e');
       emit(AppointmentsError(e.toString()));
     }
   }
@@ -152,6 +157,12 @@ class AppointmentsBloc extends Bloc<AppointmentsEvent, AppointmentsState> {
     AddProgress event,
     Emitter<AppointmentsState> emit,
   ) async {
+    // Guardar el estado actual de progreso si existe
+    List<ProgressModel> currentProgress = [];
+    if (state is ProgressLoaded) {
+      currentProgress = List.from((state as ProgressLoaded).progressList);
+    }
+
     emit(AppointmentsLoading());
     try {
       final progress = await _repository.addProgress(
@@ -159,6 +170,23 @@ class AppointmentsBloc extends Bloc<AppointmentsEvent, AppointmentsState> {
         event.dto,
       );
       emit(ProgressAdded(progress));
+
+      // Agregar el nuevo progreso a la lista existente (optimistic update)
+      final updatedList = [progress, ...currentProgress];
+      print('✨ Actualización optimista: Mostrando ${updatedList.length} items');
+      emit(ProgressLoaded(updatedList));
+
+      // Intentar recargar desde el backend (en segundo plano)
+      try {
+        await Future.delayed(const Duration(milliseconds: 800));
+        final progressList = await _repository.getProgress(event.appointmentId);
+        if (progressList.isNotEmpty) {
+          emit(ProgressLoaded(progressList));
+        }
+      } catch (e) {
+        // Si falla la recarga, mantenemos la lista optimista
+        print('⚠️ Error al recargar progreso desde backend: $e');
+      }
     } catch (e) {
       emit(AppointmentsError(e.toString()));
     }

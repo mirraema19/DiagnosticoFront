@@ -45,7 +45,10 @@ class WorkshopRemoteDataSource {
       final List<dynamic> workshopListJson = response.data;
       return workshopListJson.map((json) => Workshop.fromJson(json)).toList();
     } on DioException catch (e) {
-      final errorMessage = e.response?.data?['message'] ?? e.message;
+      final data = e.response?.data;
+      final errorMessage = (data is Map<String, dynamic> && data['message'] != null)
+          ? data['message'].toString()
+          : e.message;
       throw Exception('Error al obtener talleres cercanos: $errorMessage');
     }
   }
@@ -54,7 +57,7 @@ class WorkshopRemoteDataSource {
   Future<Workshop> getWorkshopById(String id) async {
     try {
       final response = await _apiClient.dio.get('/$id');
-      return Workshop.fromJson(response.data);
+      return Workshop.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception('Error al obtener detalle: ${e.message}');
     }
@@ -112,7 +115,10 @@ class WorkshopRemoteDataSource {
     try {
       await _apiClient.dio.post('', data: data);
     } on DioException catch (e) {
-      final msg = e.response?.data['message'] ?? e.message;
+      final responseData = e.response?.data;
+      final msg = (responseData is Map<String, dynamic> && responseData['message'] != null)
+          ? responseData['message'].toString()
+          : e.message;
       throw Exception('Error al crear taller: $msg');
     }
   }
@@ -252,7 +258,10 @@ class WorkshopRemoteDataSource {
     try {
       await _apiClient.dio.post('/$workshopId/reviews', data: data);
     } on DioException catch (e) {
-      final msg = e.response?.data['message'] ?? e.message;
+      final responseData = e.response?.data;
+      final msg = (responseData is Map<String, dynamic> && responseData['message'] != null)
+          ? responseData['message'].toString()
+          : e.message;
       throw Exception('Error al enviar reseña: $msg');
     }
   }

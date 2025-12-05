@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:proyecto/features/history/data/models/maintenance_model.dart';
 import 'package:proyecto/features/history/presentation/bloc/history_bloc.dart';
 
@@ -24,7 +23,7 @@ class _AdminAddMaintenanceScreenState extends State<AdminAddMaintenanceScreen> {
   final _costController = TextEditingController();
   final _notesController = TextEditingController();
   
-  DateTime _selectedDate = DateTime.now();
+  final DateTime _selectedDate = DateTime.now();
 
   // Opciones válidas según tu Backend
   final Map<String, String> _serviceOptions = {
@@ -111,7 +110,7 @@ class _AdminAddMaintenanceScreenState extends State<AdminAddMaintenanceScreen> {
 
               // Dropdown de Servicio
               DropdownButtonFormField<String>(
-                value: _selectedServiceType,
+                initialValue: _selectedServiceType,
                 decoration: const InputDecoration(
                   labelText: 'Tipo de Servicio', 
                   prefixIcon: Icon(Icons.build)

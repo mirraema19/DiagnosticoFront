@@ -48,7 +48,7 @@ class _DiagnosisHistoryScreenState extends State<DiagnosisHistoryScreen> {
                 padding: const EdgeInsets.all(16),
                 color: Colors.grey.shade100,
                 child: DropdownButtonFormField<Vehicle>(
-                  value: _selectedVehicle,
+                  initialValue: _selectedVehicle,
                   decoration: const InputDecoration(
                     labelText: 'Filtrar por vehículo',
                     border: OutlineInputBorder(),

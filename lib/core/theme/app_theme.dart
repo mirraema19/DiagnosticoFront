@@ -53,24 +53,24 @@ class AppTheme {
 
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: MaterialStateProperty.all<Color>(secondaryAccentColor),
-        foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
-        padding: MaterialStateProperty.all<EdgeInsets>(
+        backgroundColor: WidgetStateProperty.all<Color>(secondaryAccentColor),
+        foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
+        padding: WidgetStateProperty.all<EdgeInsets>(
           const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         ),
-        textStyle: MaterialStateProperty.all<TextStyle>(
+        textStyle: WidgetStateProperty.all<TextStyle>(
           GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
-        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        elevation: MaterialStateProperty.all<double>(4),
-        shadowColor: MaterialStateProperty.all<Color>(secondaryAccentColor.withOpacity(0.4)),
+        elevation: WidgetStateProperty.all<double>(4),
+        shadowColor: WidgetStateProperty.all<Color>(secondaryAccentColor.withOpacity(0.4)),
       ),
     ),
     

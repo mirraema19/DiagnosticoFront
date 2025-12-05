@@ -24,15 +24,17 @@ class AppointmentRepository {
     }
   }
 
-  /// Obtener todas las citas del usuario
+  /// Obtener todas las citas del usuario o taller
   Future<List<AppointmentModel>> getAppointments({
     String? status,
     int? limit,
+    String? workshopId,
   }) async {
     try {
       return await _remoteDataSource.getAppointments(
         status: status,
         limit: limit,
+        workshopId: workshopId,
       );
     } catch (e) {
       throw Exception('Error al obtener las citas: $e');
