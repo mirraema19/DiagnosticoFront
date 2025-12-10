@@ -21,6 +21,7 @@ class AppointmentsBloc extends Bloc<AppointmentsEvent, AppointmentsState> {
     on<CreateAppointment>(_onCreateAppointment);
     on<UpdateAppointment>(_onUpdateAppointment);
     on<CancelAppointment>(_onCancelAppointment);
+    on<ConfirmAppointment>(_onConfirmAppointment);
     on<CompleteAppointment>(_onCompleteAppointment);
 
     // Progress handlers
@@ -115,6 +116,19 @@ class AppointmentsBloc extends Bloc<AppointmentsEvent, AppointmentsState> {
     }
   }
 
+  Future<void> _onConfirmAppointment(
+    ConfirmAppointment event,
+    Emitter<AppointmentsState> emit,
+  ) async {
+    emit(AppointmentsLoading());
+    try {
+      final appointment = await _repository.confirmAppointment(event.id);
+      emit(AppointmentConfirmed(appointment));
+    } catch (e) {
+      emit(AppointmentsError(e.toString()));
+    }
+  }
+
   Future<void> _onCompleteAppointment(
     CompleteAppointment event,
     Emitter<AppointmentsState> emit,
@@ -200,14 +214,18 @@ class AppointmentsBloc extends Bloc<AppointmentsEvent, AppointmentsState> {
     LoadChatMessages event,
     Emitter<AppointmentsState> emit,
   ) async {
+    print('📢 [BLoC Chat] LoadChatMessages event recibido para: ${event.appointmentId}');
     emit(AppointmentsLoading());
     try {
       final messages = await _repository.getChatMessages(
         event.appointmentId,
         limit: event.limit,
       );
+      print('📢 [BLoC Chat] Emitiendo ChatMessagesLoaded con ${messages.length} mensajes');
       emit(ChatMessagesLoaded(messages));
+      print('📢 [BLoC Chat] Estado actual después de emit: ${state.runtimeType}');
     } catch (e) {
+      print('📢 [BLoC Chat] Error al cargar mensajes: $e');
       emit(AppointmentsError(e.toString()));
     }
   }

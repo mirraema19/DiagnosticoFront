@@ -15,10 +15,10 @@ class CostBreakdown extends Equatable {
 
   factory CostBreakdown.fromJson(Map<String, dynamic> json) {
     return CostBreakdown(
-      partsMin: (json['partsMin'] as num).toDouble(),
-      partsMax: (json['partsMax'] as num).toDouble(),
-      laborMin: (json['laborMin'] as num).toDouble(),
-      laborMax: (json['laborMax'] as num).toDouble(),
+      partsMin: (json['partsMin'] as num).toDouble(), // Backend uses camelCase
+      partsMax: (json['partsMax'] as num).toDouble(), // Backend uses camelCase
+      laborMin: (json['laborMin'] as num).toDouble(), // Backend uses camelCase
+      laborMax: (json['laborMax'] as num).toDouble(), // Backend uses camelCase
     );
   }
 
@@ -52,8 +52,8 @@ class CostEstimateModel extends Equatable {
 
   factory CostEstimateModel.fromJson(Map<String, dynamic> json) {
     return CostEstimateModel(
-      minCost: (json['minCost'] as num).toDouble(),
-      maxCost: (json['maxCost'] as num).toDouble(),
+      minCost: (json['minCost'] as num).toDouble(), // Backend uses camelCase
+      maxCost: (json['maxCost'] as num).toDouble(), // Backend uses camelCase
       currency: json['currency'] ?? 'MXN',
       breakdown: CostBreakdown.fromJson(json['breakdown']),
       disclaimer: json['disclaimer'],

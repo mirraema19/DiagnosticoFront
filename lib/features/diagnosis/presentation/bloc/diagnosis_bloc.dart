@@ -8,20 +8,17 @@ import 'package:proyecto/features/diagnosis/data/models/chat_response_model.dart
 import 'package:proyecto/features/diagnosis/data/models/classification_model.dart';
 import 'package:proyecto/features/diagnosis/data/models/urgency_model.dart';
 import 'package:proyecto/features/diagnosis/data/models/cost_estimate_model.dart';
-import 'package:proyecto/features/workshops/data/repositories/workshop_repository.dart';
-import 'package:proyecto/features/diagnosis/utils/category_specialty_mapper.dart';
-import 'package:proyecto/core/services/location_service.dart';
+import 'package:proyecto/features/diagnosis/data/models/workshop_recommendation_model.dart';
+import 'package:proyecto/features/diagnosis/data/models/workshop_recommendation_model.dart';
 
 part 'diagnosis_event.dart';
 part 'diagnosis_state.dart';
 
 class DiagnosisBloc extends Bloc<DiagnosisEvent, DiagnosisState> {
   final DiagnosisRepository repository;
-  final WorkshopRepository workshopRepository;
 
   DiagnosisBloc({
     required this.repository,
-    required this.workshopRepository,
   }) : super(const DiagnosisInitial()) {
     on<CreateDiagnosisSession>(_onCreateSession);
     on<LoadDiagnosisSessions>(_onLoadSessions);
@@ -32,7 +29,7 @@ class DiagnosisBloc extends Bloc<DiagnosisEvent, DiagnosisState> {
     on<GetUrgencyLevel>(_onGetUrgencyLevel);
     on<GetCostEstimate>(_onGetCostEstimate);
     on<ClearDiagnosisState>(_onClearState);
-    on<LoadRecommendedWorkshops>(_onLoadRecommendedWorkshops);
+    on<LoadRecommendations>(_onLoadRecommendations);
     on<LoadActiveSession>(_onLoadActiveSession);
   }
 
@@ -42,6 +39,7 @@ class DiagnosisBloc extends Bloc<DiagnosisEvent, DiagnosisState> {
   ) async {
     emit(const DiagnosisLoading());
     try {
+      // Backend returns ChatResponseModel with userMessage and assistantMessage
       final chatResponse = await repository.createSession(
         vehicleId: event.vehicleId,
         initialMessage: event.initialMessage,
@@ -49,9 +47,10 @@ class DiagnosisBloc extends Bloc<DiagnosisEvent, DiagnosisState> {
 
       print('DiagnosisBloc: Session created. ID: ${chatResponse.userMessage.sessionId}');
 
+      // Create session model from the response
       final session = DiagnosisSessionModel(
         id: chatResponse.userMessage.sessionId,
-        userId: '',
+        userId: '', // Backend fills this from JWT
         vehicleId: event.vehicleId,
         status: SessionStatus.ACTIVE,
         startedAt: DateTime.now(),
@@ -145,11 +144,15 @@ class DiagnosisBloc extends Bloc<DiagnosisEvent, DiagnosisState> {
           suggestedQuestions: chatResponse.suggestedQuestions,
         ));
 
-        // Automatically classify problem after enough conversation (3+ messages total)
+
+        // Automatic classification disabled by user request. 
+        // Diagnosis is now triggered only manually via button.
+        /*
         if (updatedMessages.length >= 3 && currentState.classification == null) {
           print('DiagnosisBloc: Auto-triggering problem classification after conversation');
           add(ClassifyProblem(event.sessionId));
         }
+        */
       } else {
         print('DiagnosisBloc: WARNING - State is not DiagnosisSessionActive, it is ${state.runtimeType}');
       }
@@ -178,8 +181,9 @@ class DiagnosisBloc extends Bloc<DiagnosisEvent, DiagnosisState> {
         print('DiagnosisBloc: Classification complete, loading cost estimate');
         add(GetCostEstimate(event.sessionId));
 
-        // Get user location and load recommended workshops
-        _loadWorkshopsWithLocation(classification.category);
+        // Load recommended workshops from backend ML
+        print('DiagnosisBloc: Classification complete, loading recommendations');
+        add(LoadRecommendations(sessionId: event.sessionId));
 
       } else {
         emit(DiagnosisClassified(classification));
@@ -251,75 +255,35 @@ class DiagnosisBloc extends Bloc<DiagnosisEvent, DiagnosisState> {
     emit(const DiagnosisInitial());
   }
 
-  Future<void> _onLoadRecommendedWorkshops(
-    LoadRecommendedWorkshops event,
+  Future<void> _onLoadRecommendations(
+    LoadRecommendations event,
     Emitter<DiagnosisState> emit,
   ) async {
     try {
-      final specialty = CategorySpecialtyMapper.getWorkshopSpecialty(event.category);
-
-      if (specialty == null) {
-        print('DiagnosisBloc: No specialty mapping for ${event.category}');
-        return;
-      }
-
-      print('DiagnosisBloc: Loading workshops for specialty: $specialty');
-      print('DiagnosisBloc: Location: lat=${event.latitude}, lon=${event.longitude}');
-
-      // Pasar ubicación al repository (que delega al backend)
-      final workshops = await workshopRepository.fetchWorkshopsBySpecialty(
-        specialty,
-        latitude: event.latitude != 0.0 ? event.latitude : null,
-        longitude: event.longitude != 0.0 ? event.longitude : null,
+      print('DiagnosisBloc: Loading recommendations from backend ML for session ${event.sessionId}');
+      
+      final recommendations = await repository.getRecommendations(
+        sessionId: event.sessionId,
+        limit: event.limit,
       );
 
-      print('DiagnosisBloc: Found ${workshops.length} workshops');
+      print('DiagnosisBloc: Found ${recommendations.length} recommended workshops');
 
       if (state is DiagnosisSessionActive) {
         final currentState = state as DiagnosisSessionActive;
-        emit(currentState.copyWith(recommendedWorkshops: workshops));
-      }
-    } catch (e) {
-      print('DiagnosisBloc: Error loading recommended workshops: $e');
-      // Fail silently, don't emit error
-    }
-  }
-
-  /// Helper method to get location and load workshops
-  Future<void> _loadWorkshopsWithLocation(ProblemCategory category) async {
-    try {
-      print('DiagnosisBloc: Getting user location for workshop recommendations...');
-
-      // Intentar obtener ubicación real del dispositivo
-      final position = await LocationService.getBestAvailableLocation();
-
-      double latitude = 0.0;
-      double longitude = 0.0;
-
-      if (position != null) {
-        latitude = position.latitude;
-        longitude = position.longitude;
-        print('DiagnosisBloc: Using real location: lat=$latitude, lon=$longitude');
+        emit(currentState.copyWith(recommendedWorkshops: recommendations));
       } else {
-        print('DiagnosisBloc: Could not get location, using default (workshops will use backend default)');
+        emit(DiagnosisRecommendationsLoaded(recommendations));
       }
-
-      // Cargar talleres con ubicación real o null (backend usará default)
-      add(LoadRecommendedWorkshops(
-        category: category,
-        latitude: latitude,
-        longitude: longitude,
-      ));
     } catch (e) {
-      print('DiagnosisBloc: Error getting location, loading workshops with default: $e');
-      // Si falla, cargar con coordenadas 0,0 (backend usará default)
-      add(LoadRecommendedWorkshops(
-        category: category,
-        latitude: 0.0,
-        longitude: 0.0,
-      ));
+      print('DiagnosisBloc: Error loading recommendations (non-critical): $e');
+      // Fail silently, don't interrupt the session
+      if (state is! DiagnosisSessionActive) {
+        emit(DiagnosisError(e.toString()));
+      }
     }
   }
+
 
   Future<void> _onLoadActiveSession(
     LoadActiveSession event,
@@ -351,12 +315,57 @@ class DiagnosisBloc extends Bloc<DiagnosisEvent, DiagnosisState> {
       print('DiagnosisBloc: Found active session ${session.id}, loading messages');
       
       final messages = await repository.getMessages(session.id);
-
       print('DiagnosisBloc: Loaded ${messages.length} messages');
+
+      // Attempt to load classification/results if they exist
+      // We do this by checking if we CAN get them without error
+      ClassificationModel? classification;
+      UrgencyModel? urgency;
+      CostEstimateModel? costEstimate;
+      List<WorkshopRecommendationModel>? recommendations;
+
+      // Only attempt to load results if there are enough messages (implying analysis might have happened)
+      if (messages.length >= 3) {
+        try {
+          // TODO: Ideally getSessionById should return full details including these
+          // For now we try to fetch them individually. If they don't exist, these might throw/fail silently
+          // We can use a try-catch for each or check session status if backend supported it
+          
+          // Note: Since we don't have a direct "hasClassification" flag, 
+          // we'll optimistically try to fetch urgency which is usually present if classified
+          try {
+             urgency = await repository.getUrgency(session.id);
+             // If we got urgency, likely we have the rest
+             costEstimate = await repository.getCostEstimate(session.id);
+             recommendations = await repository.getRecommendations(sessionId: session.id);
+             
+             // For classification, there is no GET endpoint exposed in repo yet except inside session detail
+             // We will assume if urgency exists, we can try to get session detail to extract classification
+             // or add a getClassification method. 
+             // For now, let's try to get full session detail which might contain it
+             final sessionDetail = await repository.getSessionById(session.id);
+             // If sessionDetail has classification map, we'd need to parse it. 
+             // But DiagnosisSessionModel doesn't have it yet.
+             
+             // WORKAROUND: For now we just load what we can. 
+             // If we really need classification object, we might need to add getClassification to repo
+             // OR assume if we have urgency/cost/workshops, we can show them even without the Classification object
+             // displayed in the UI (which is just the category name).
+          } catch (e) {
+            print('DiagnosisBloc: Could not load results (normal if not diagnosed yet): $e');
+          }
+        } catch (e) {
+          print('DiagnosisBloc: Error checking for results: $e');
+        }
+      }
 
       emit(DiagnosisSessionActive(
         session: session,
         messages: messages,
+        // classification: classification, // We don't have this yet
+        urgency: urgency,
+        costEstimate: costEstimate,
+        recommendedWorkshops: recommendations,
       ));
     } catch (e) {
       print('DiagnosisBloc: Error loading active session: $e');

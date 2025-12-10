@@ -5,6 +5,7 @@ import 'package:proyecto/features/appointments/data/models/appointment_model.dar
 import 'package:proyecto/features/appointments/data/models/chat_message_model.dart';
 import 'package:proyecto/features/appointments/data/models/progress_model.dart';
 import 'package:proyecto/features/appointments/presentation/bloc/appointments_bloc.dart';
+import 'package:proyecto/features/auth/presentation/bloc/auth_bloc/auth_bloc.dart';
 import 'package:intl/intl.dart';
 
 /// Pantalla de detalle de cita para WORKSHOP_ADMIN
@@ -28,8 +29,7 @@ class _WorkshopAppointmentDetailScreenState
   late TabController _tabController;
   final TextEditingController _messageController = TextEditingController();
   AppointmentModel? _currentAppointment;
-  bool _progressLoaded = false;
-  bool _chatLoaded = false;
+  // bool _progressLoaded = false; // Removed to force reload
 
   @override
   void initState() {
@@ -50,14 +50,14 @@ class _WorkshopAppointmentDetailScreenState
   }
 
   void _onTabChanged(int index) {
-    if (index == 1 && !_progressLoaded) {
-      // Tab de Progreso
+    if (index == 1) {
+      // Tab de Progreso - Se recarga SIEMPRE al entrar
+      print('💬 [Taller] Recargando progreso al entrar al tab...');
       context.read<AppointmentsBloc>().add(LoadProgress(widget.appointmentId));
-      _progressLoaded = true;
-    } else if (index == 2 && !_chatLoaded) {
-      // Tab de Chat
+    } else if (index == 2) {
+      // Tab de Chat - Se recarga SIEMPRE al entrar
+      print('💬 [Taller] Recargando chat al entrar al tab...');
       context.read<AppointmentsBloc>().add(LoadChatMessages(widget.appointmentId));
-      _chatLoaded = true;
     }
   }
 
@@ -90,6 +90,19 @@ class _WorkshopAppointmentDetailScreenState
               setState(() {
                 _currentAppointment = state.appointment;
               });
+            }
+
+            // Actualizar appointment cuando se confirma
+            if (state is AppointmentConfirmed) {
+              setState(() {
+                _currentAppointment = state.appointment;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Cita aceptada exitosamente'),
+                  backgroundColor: Colors.green,
+                ),
+              );
             }
 
             // Actualizar appointment cuando se completa
@@ -125,6 +138,8 @@ class _WorkshopAppointmentDetailScreenState
                   backgroundColor: Colors.green,
                 ),
               );
+              // Recargar chat automáticamente después de enviar
+              context.read<AppointmentsBloc>().add(LoadChatMessages(widget.appointmentId));
             }
           },
           child: BlocBuilder<AppointmentsBloc, AppointmentsState>(
@@ -202,8 +217,9 @@ class _WorkshopAppointmentDetailScreenState
                   bold: true),
           ]),
           const SizedBox(height: 16),
-          if (appointment.status == AppointmentStatus.IN_PROGRESS ||
-              appointment.status == AppointmentStatus.CONFIRMED)
+          if (appointment.status == AppointmentStatus.PENDING ||
+              appointment.status == AppointmentStatus.CONFIRMED ||
+              appointment.status == AppointmentStatus.IN_PROGRESS)
             _buildActionButtons(context, appointment),
         ],
       ),
@@ -301,23 +317,46 @@ class _WorkshopAppointmentDetailScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevatedButton.icon(
-          onPressed: () {
-            _showCompleteDialog(context, appointment.id);
-          },
-          icon: const Icon(Icons.check_circle),
-          label: const Text('Completar Cita'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+        // Botón de Aceptar Cita (solo si está PENDING)
+        if (appointment.status == AppointmentStatus.PENDING)
+          ElevatedButton.icon(
+            onPressed: () {
+              _showConfirmDialog(context, appointment.id);
+            },
+            icon: const Icon(Icons.check),
+            label: const Text('Aceptar Cita'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
           ),
-        ),
+
+        // Botón de Completar Cita (solo si está CONFIRMED o IN_PROGRESS)
+        if (appointment.status == AppointmentStatus.CONFIRMED ||
+            appointment.status == AppointmentStatus.IN_PROGRESS)
+          ElevatedButton.icon(
+            onPressed: () {
+              _showCompleteDialog(context, appointment.id);
+            },
+            icon: const Icon(Icons.check_circle),
+            label: const Text('Completar Cita'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
       ],
     );
   }
 
   Widget _buildProgressTab(BuildContext context) {
+    // Verificar si la cita está confirmada para permitir agregar progreso
+    final canAddProgress = _currentAppointment != null &&
+        (_currentAppointment!.status == AppointmentStatus.CONFIRMED ||
+         _currentAppointment!.status == AppointmentStatus.IN_PROGRESS);
+
     return Stack(
       children: [
         BlocBuilder<AppointmentsBloc, AppointmentsState>(
@@ -342,20 +381,27 @@ class _WorkshopAppointmentDetailScreenState
               if (state.progressList.isEmpty) {
                 print('🎨 Lista vacía, mostrando mensaje...');
 
-                return const Center(
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.timeline, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
+                      const Icon(Icons.timeline, size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      const Text(
                         'No hay actualizaciones de progreso aún',
                         style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
-                        'Presiona el botón + para agregar una actualización',
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        canAddProgress
+                            ? 'Presiona el botón + para agregar una actualización'
+                            : 'Debes aceptar la cita primero para agregar progreso',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: canAddProgress ? Colors.grey : Colors.orange,
+                          fontWeight: canAddProgress ? FontWeight.normal : FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -377,16 +423,17 @@ class _WorkshopAppointmentDetailScreenState
             return const Center(child: Text('No hay datos de progreso'));
           },
         ),
-        // Botón flotante para agregar progreso
-        Positioned(
-          bottom: 16,
-          right: 16,
-          child: FloatingActionButton(
-            onPressed: () => _showAddProgressDialog(context),
-            backgroundColor: Colors.indigo,
-            child: const Icon(Icons.add),
+        // Botón flotante para agregar progreso (solo si está confirmada)
+        if (canAddProgress)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: () => _showAddProgressDialog(context),
+              backgroundColor: Colors.indigo,
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -478,10 +525,17 @@ class _WorkshopAppointmentDetailScreenState
   }
 
   Widget _buildMessageBubble(ChatMessageModel message) {
+    // Obtener el usuario autenticado actual
+    final currentUser = context.read<AuthBloc>().state.user;
+    
+    // Determinar si el mensaje fue enviado por el usuario actual
+    final isCurrentUser = currentUser != null && message.senderId == currentUser.id;
+    
+    // Determinar si el mensaje es de un mecánico (para el color)
     final isMechanic = message.senderRole == SenderRole.mechanic;
 
     return Align(
-      alignment: isMechanic ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -489,24 +543,36 @@ class _WorkshopAppointmentDetailScreenState
           maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
         decoration: BoxDecoration(
-          color: isMechanic ? Colors.indigo : Colors.grey[300],
+          // Taller (Mecánico) = Azul, Cliente (Usuario Vehículo) = Verde
+          color: isMechanic ? Colors.blue[700] : Colors.green[600],
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Etiqueta de remitente para mayor claridad
+            Text(
+              isCurrentUser ? 'Tú (Taller)' : (isMechanic ? 'Taller' : 'Cliente'),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ),
+            const SizedBox(height: 4),
             Text(
               message.message,
-              style: TextStyle(
-                color: isMechanic ? Colors.white : Colors.black,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               DateFormat('HH:mm').format(message.createdAt),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 10,
-                color: isMechanic ? Colors.white70 : Colors.black54,
+                color: Colors.white70,
               ),
             ),
           ],
@@ -516,6 +582,12 @@ class _WorkshopAppointmentDetailScreenState
   }
 
   Widget _buildMessageInput(BuildContext context) {
+    // Verificar si la cita está confirmada para permitir enviar mensajes
+    final canSendMessage = _currentAppointment != null &&
+        (_currentAppointment!.status == AppointmentStatus.CONFIRMED ||
+         _currentAppointment!.status == AppointmentStatus.IN_PROGRESS ||
+         _currentAppointment!.status == AppointmentStatus.COMPLETED);
+
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -533,26 +605,31 @@ class _WorkshopAppointmentDetailScreenState
           Expanded(
             child: TextField(
               controller: _messageController,
-              decoration: const InputDecoration(
-                hintText: 'Escribe un mensaje al cliente...',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              enabled: canSendMessage,
+              decoration: InputDecoration(
+                hintText: canSendMessage
+                    ? 'Escribe un mensaje al cliente...'
+                    : 'Debes aceptar la cita primero',
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
             ),
           ),
           const SizedBox(width: 8),
           IconButton(
-            onPressed: () {
-              if (_messageController.text.isNotEmpty) {
-                final dto = SendMessageDto(message: _messageController.text);
-                context
-                    .read<AppointmentsBloc>()
-                    .add(SendChatMessage(widget.appointmentId, dto));
-                _messageController.clear();
-              }
-            },
+            onPressed: canSendMessage
+                ? () {
+                    if (_messageController.text.isNotEmpty) {
+                      final dto = SendMessageDto(message: _messageController.text);
+                      context
+                          .read<AppointmentsBloc>()
+                          .add(SendChatMessage(widget.appointmentId, dto));
+                      _messageController.clear();
+                    }
+                  }
+                : null,
             icon: const Icon(Icons.send),
-            color: Colors.indigo,
+            color: canSendMessage ? Colors.indigo : Colors.grey,
           ),
         ],
       ),
@@ -627,6 +704,35 @@ class _WorkshopAppointmentDetailScreenState
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showConfirmDialog(BuildContext context, String appointmentId) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirmar Cita'),
+        content: const Text(
+          '¿Estás seguro de que deseas aceptar esta cita?\n\n'
+          'Al aceptar la cita, podrás agregar progreso y chatear con el cliente.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<AppointmentsBloc>().add(
+                ConfirmAppointment(appointmentId)
+              );
+              Navigator.pop(dialogContext);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            child: const Text('Aceptar Cita'),
+          ),
+        ],
       ),
     );
   }

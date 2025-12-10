@@ -101,20 +101,18 @@ class ClearDiagnosisState extends DiagnosisEvent {
   const ClearDiagnosisState();
 }
 
-/// Cargar talleres recomendados basados en clasificación
-class LoadRecommendedWorkshops extends DiagnosisEvent {
-  final ProblemCategory category;
-  final double latitude;
-  final double longitude;
+/// Cargar talleres recomendados desde el backend (ML)
+class LoadRecommendations extends DiagnosisEvent {
+  final String sessionId;
+  final int limit;
 
-  const LoadRecommendedWorkshops({
-    required this.category,
-    required this.latitude,
-    required this.longitude,
+  const LoadRecommendations({
+    required this.sessionId,
+    this.limit = 3,
   });
 
   @override
-  List<Object?> get props => [category, latitude, longitude];
+  List<Object?> get props => [sessionId, limit];
 }
 
 /// Cargar sesión activa del vehículo (para persistencia de historial)

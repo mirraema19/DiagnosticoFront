@@ -18,12 +18,10 @@ class WorkshopRepository {
     String? priceRange,
     String? specialtyType,
   }) async {
-    return await _remoteDataSource.getNearbyWorkshops(
-      latitude: latitude,
-      longitude: longitude,
-      minRating: minRating,
-      priceRange: priceRange,
-      specialtyType: specialtyType,
+    // Usar el endpoint general GET /workshops en lugar de /search/nearby
+    return await _remoteDataSource.getAllWorkshops(
+      limit: 100,
+      isApproved: true, // Solo talleres aprobados para clientes
     );
   }
 

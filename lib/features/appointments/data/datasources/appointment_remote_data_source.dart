@@ -132,7 +132,32 @@ class AppointmentRemoteDataSource {
     }
   }
 
-  /// 6. POST /appointments/:id/complete - Completar Cita (Taller)
+  /// 6. POST /appointments/:id/confirm - Confirmar/Aceptar Cita (Taller)
+  /// Actualiza el estado de la cita a CONFIRMED
+  Future<AppointmentModel> confirmAppointment(String id) async {
+    try {
+      print('🚀 Confirmando cita: $id');
+      print('📤 Enviando POST a /confirm');
+      
+      final response = await _apiClient.dio.post(
+        '/appointments/$id/confirm',
+        // No body needed for this endpoint as per requirements
+      );
+      
+      print('✅ Cita confirmada exitosamente');
+      print('📦 Respuesta status: ${response.statusCode}');
+      print('📦 Respuesta data: ${response.data}');
+      
+      return AppointmentModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      print('❌ Error al confirmar cita:');
+      print('   Status: ${e.response?.statusCode}');
+      print('   Data: ${e.response?.data}');
+      throw _handleError(e);
+    }
+  }
+
+  /// 7. POST /appointments/:id/complete - Completar Cita (Taller)
   Future<AppointmentModel> completeAppointment(
     String id, {
     required double finalCost,

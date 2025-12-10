@@ -43,24 +43,27 @@ void setupLocator() {
   
   sl.registerLazySingleton<ApiClient>(
     () => ApiClient(
-      baseUrl: 'https://workshop-service-autodiag.onrender.com/api/workshops/workshops', 
+      baseUrl: 'https://workshop-service-autodiag.onrender.com/api',
       tokenStorage: sl()
     ),
     instanceName: 'WorkshopApiClient',
   );
   
   sl.registerLazySingleton<ApiClient>(
-    () => ApiClient(
-      baseUrl: 'https://ai-diagnosis-service-autodiag.onrender.com',
-      tokenStorage: sl()
-    ),
+    () {
+      final client = ApiClient(
+        baseUrl: 'https://ai-diagnosis-service-autodiag.onrender.com',
+        tokenStorage: sl()
+      );
+      // Aumentar timeout para el servicio de IA (cold start + llamadas a OpenAI pueden tardar)
+      client.dio.options.connectTimeout = const Duration(minutes: 3);
+      client.dio.options.receiveTimeout = const Duration(minutes: 3);
+      client.dio.options.sendTimeout = const Duration(minutes: 3);
+      return client;
+    },
     instanceName: 'DiagnosisApiClient',
   );
 
-  // Appointment Service API Client
-  // TODO: Actualizar esta URL cuando despliegues el servicio en Render
-  // Para pruebas locales usa: 'http://localhost:3000/api'
-  // Para producción usa: 'https://appointment-service-autodiag.onrender.com/api'
   sl.registerLazySingleton<ApiClient>(
     () => ApiClient(
       baseUrl: 'https://appointment-service-autodiag.onrender.com/api',

@@ -5,6 +5,8 @@ import 'package:proyecto/features/diagnosis/data/models/chat_response_model.dart
 import 'package:proyecto/features/diagnosis/data/models/classification_model.dart';
 import 'package:proyecto/features/diagnosis/data/models/urgency_model.dart';
 import 'package:proyecto/features/diagnosis/data/models/cost_estimate_model.dart';
+import 'package:proyecto/features/diagnosis/data/models/workshop_recommendation_model.dart';
+import 'package:proyecto/features/diagnosis/data/models/workshop_recommendation_model.dart';
 
 class DiagnosisRepository {
   final DiagnosisRemoteDataSource dataSource;
@@ -100,4 +102,21 @@ class DiagnosisRepository {
       throw Exception('Repository: $e');
     }
   }
+
+  // ==================== RECOMMENDATIONS ====================
+
+  Future<List<WorkshopRecommendationModel>> getRecommendations({
+    required String sessionId,
+    int limit = 3,
+  }) async {
+    try {
+      return await dataSource.getRecommendations(
+        sessionId: sessionId,
+        limit: limit,
+      );
+    } catch (e) {
+      throw Exception('Repository: $e');
+    }
+  }
+
 }

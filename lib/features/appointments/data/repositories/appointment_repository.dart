@@ -71,6 +71,15 @@ class AppointmentRepository {
     }
   }
 
+  /// Confirmar/Aceptar una cita (solo para talleres)
+  Future<AppointmentModel> confirmAppointment(String id) async {
+    try {
+      return await _remoteDataSource.confirmAppointment(id);
+    } catch (e) {
+      throw Exception('Error al confirmar la cita: $e');
+    }
+  }
+
   /// Completar una cita (solo para talleres)
   Future<AppointmentModel> completeAppointment(
     String id, {

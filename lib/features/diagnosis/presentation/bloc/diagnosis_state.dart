@@ -35,7 +35,7 @@ class DiagnosisSessionActive extends DiagnosisState {
   final ClassificationModel? classification;
   final UrgencyModel? urgency;
   final CostEstimateModel? costEstimate;
-  final List<dynamic>? recommendedWorkshops; // Workshop models
+  final List<WorkshopRecommendationModel>? recommendedWorkshops;
 
   const DiagnosisSessionActive({
     required this.session,
@@ -54,7 +54,7 @@ class DiagnosisSessionActive extends DiagnosisState {
     ClassificationModel? classification,
     UrgencyModel? urgency,
     CostEstimateModel? costEstimate,
-    List<dynamic>? recommendedWorkshops,
+    List<WorkshopRecommendationModel>? recommendedWorkshops,
   }) {
     return DiagnosisSessionActive(
       session: session ?? this.session,
@@ -119,6 +119,16 @@ class DiagnosisCostEstimateObtained extends DiagnosisState {
   List<Object?> get props => [costEstimate];
 }
 
+/// Recomendaciones de talleres cargadas
+class DiagnosisRecommendationsLoaded extends DiagnosisState {
+  final List<WorkshopRecommendationModel> recommendations;
+
+  const DiagnosisRecommendationsLoaded(this.recommendations);
+
+  @override
+  List<Object?> get props => [recommendations];
+}
+
 /// Error
 class DiagnosisError extends DiagnosisState {
   final String message;
@@ -128,3 +138,4 @@ class DiagnosisError extends DiagnosisState {
   @override
   List<Object?> get props => [message];
 }
+

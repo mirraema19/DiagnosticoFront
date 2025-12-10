@@ -310,6 +310,33 @@ class AppointmentListItem extends StatelessWidget {
                   ],
                 ),
               ],
+
+              // Botón "Dejar Reseña" solo para citas completadas
+              if (appointment.status == AppointmentStatus.COMPLETED) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      // Navegar a la pantalla de crear reseña con el appointmentId
+                      context.push(
+                        '/workshops/${appointment.workshopId}/review',
+                        extra: {
+                          'appointmentId': appointment.id,
+                          'workshopId': appointment.workshopId,
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.rate_review, size: 18),
+                    label: const Text('Dejar Reseña del Servicio'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue,
+                      side: const BorderSide(color: Colors.blue, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

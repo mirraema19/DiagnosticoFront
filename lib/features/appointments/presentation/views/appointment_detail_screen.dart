@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:proyecto/core/services/service_locator.dart';
 import 'package:proyecto/features/appointments/data/models/appointment_model.dart';
 import 'package:proyecto/features/appointments/data/models/chat_message_model.dart';
 import 'package:proyecto/features/appointments/data/models/progress_model.dart';
 import 'package:proyecto/features/appointments/presentation/bloc/appointments_bloc.dart';
+import 'package:proyecto/features/auth/presentation/bloc/auth_bloc/auth_bloc.dart';
 import 'package:intl/intl.dart';
 
 class AppointmentDetailScreen extends StatefulWidget {
@@ -25,8 +25,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
   late TabController _tabController;
   final TextEditingController _messageController = TextEditingController();
   AppointmentModel? _currentAppointment;
-  bool _progressLoaded = false;
-  bool _chatLoaded = false;
+  // bool _progressLoaded = false; // Removed to force reload
 
   @override
   void initState() {
@@ -39,17 +38,22 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
         _onTabChanged(_tabController.index);
       }
     });
+
+    // Cargar el appointment cuando inicia la pantalla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppointmentsBloc>().add(LoadAppointmentById(widget.appointmentId));
+    });
   }
 
   void _onTabChanged(int index) {
-    if (index == 1 && !_progressLoaded) {
-      // Tab de Progreso
+    if (index == 1) {
+      // Tab de Progreso - Se recarga SIEMPRE al entrar
+      print('💬 [Cliente] Recargando progreso al entrar al tab...');
       context.read<AppointmentsBloc>().add(LoadProgress(widget.appointmentId));
-      _progressLoaded = true;
-    } else if (index == 2 && !_chatLoaded) {
-      // Tab de Chat
+    } else if (index == 2) {
+      // Tab de Chat - Se recarga SIEMPRE al entrar
+      print('💬 [Cliente] Recargando chat al entrar al tab...');
       context.read<AppointmentsBloc>().add(LoadChatMessages(widget.appointmentId));
-      _chatLoaded = true;
     }
   }
 
@@ -62,10 +66,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AppointmentsBloc(repository: sl())
-        ..add(LoadAppointmentById(widget.appointmentId)),
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           title: const Text('Detalle de Cita'),
           backgroundColor: Colors.blue,
@@ -100,6 +101,13 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
               );
             }
 
+            // Actualizar appointment cuando se confirma
+            if (state is AppointmentConfirmed) {
+              setState(() {
+                _currentAppointment = state.appointment;
+              });
+            }
+
             // Actualizar appointment cuando se completa
             if (state is AppointmentCompleted) {
               setState(() {
@@ -112,8 +120,29 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
                 ),
               );
             }
+
+            // Recargar chat después de enviar mensaje
+            if (state is ChatMessageSent) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Mensaje enviado'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Recargar chat automáticamente después de enviar
+              context.read<AppointmentsBloc>().add(LoadChatMessages(widget.appointmentId));
+            }
           },
           child: BlocBuilder<AppointmentsBloc, AppointmentsState>(
+            buildWhen: (previous, current) {
+              // Permitir reconstrucción para appointment, pero NO para chat/progress
+              // (esos se manejan en sus propios BlocBuilders)
+              return current is AppointmentDetailLoaded ||
+                     current is AppointmentCancelled ||
+                     current is AppointmentCompleted ||
+                     (current is AppointmentsLoading && _currentAppointment == null) ||
+                     (current is AppointmentsError && _currentAppointment == null);
+            },
             builder: (context, state) {
               // Mostrar loading solo en la primera carga
               if (state is AppointmentsLoading && _currentAppointment == null) {
@@ -160,8 +189,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
             },
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildDetailsTab(BuildContext context, AppointmentModel appointment) {
@@ -305,37 +333,43 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
   }
 
   Widget _buildProgressTab(BuildContext context) {
-    print('🔄 [Cliente] _buildProgressTab construyéndose...');
-    return BlocConsumer<AppointmentsBloc, AppointmentsState>(
-      listenWhen: (previous, current) {
-        print('👂 [Cliente] listenWhen: ${previous.runtimeType} -> ${current.runtimeType}');
-        return true;
-      },
-      listener: (context, state) {
-        print('👂 [Cliente] Listener recibió: ${state.runtimeType}');
-      },
+    return BlocBuilder<AppointmentsBloc, AppointmentsState>(
       buildWhen: (previous, current) {
-        print('🏗️ [Cliente] buildWhen: ${previous.runtimeType} -> ${current.runtimeType}');
-        return true; // Siempre rebuild para debugging
+        // Solo rebuild cuando sea un estado relacionado con progreso o loading
+        final shouldBuild = current is ProgressLoaded ||
+                            current is AppointmentsLoading ||
+                            current is ProgressAdded;
+        print('🎨 [Cliente Progreso] buildWhen: ${current.runtimeType} -> shouldBuild: $shouldBuild');
+        return shouldBuild;
       },
       builder: (context, state) {
-        print('🎨 [Cliente] UI Progreso recibió estado: ${state.runtimeType}');
+        print('🎨 [Cliente Progreso] UI recibió estado: ${state.runtimeType}');
 
         if (state is AppointmentsLoading) {
-          print('🎨 [Cliente] Mostrando loading...');
+          print('🎨 [Cliente Progreso] Mostrando loading...');
           return const Center(child: CircularProgressIndicator());
         }
 
         if (state is ProgressLoaded) {
-          print('🎨 [Cliente] ProgressLoaded con ${state.progressList.length} items');
+          print('🎨 [Cliente Progreso] ProgressLoaded con ${state.progressList.length} items');
           if (state.progressList.isEmpty) {
-            print('🎨 [Cliente] Lista vacía, mostrando mensaje...');
+            print('🎨 [Cliente Progreso] Lista vacía, mostrando mensaje...');
             return const Center(
-              child: Text('No hay actualizaciones de progreso aún'),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.timeline, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No hay actualizaciones de progreso aún',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
             );
           }
 
-          print('🎨 [Cliente] Mostrando ${state.progressList.length} items de progreso');
+          print('🎨 [Cliente Progreso] Mostrando lista de ${state.progressList.length} items');
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: state.progressList.length,
@@ -346,7 +380,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
           );
         }
 
-        print('🎨 [Cliente] Estado no reconocido, mostrando mensaje por defecto');
+        print('🎨 [Cliente Progreso] Estado no reconocido, mostrando mensaje por defecto');
         return const Center(child: Text('No hay datos de progreso'));
       },
     );
@@ -387,27 +421,53 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
   }
 
   Widget _buildChatTab(BuildContext context) {
+    print('🔄 [Cliente Chat] _buildChatTab construyéndose');
+
     return Column(
       children: [
         Expanded(
           child: BlocBuilder<AppointmentsBloc, AppointmentsState>(
             buildWhen: (previous, current) {
-              return current is ChatMessagesLoaded ||
-                     current is AppointmentsLoading ||
-                     current is ChatMessageSent;
+              // Solo rebuild cuando sea un estado relacionado con chat o loading
+              final shouldBuild = current is ChatMessagesLoaded ||
+                                  current is AppointmentsLoading ||
+                                  current is ChatMessageSent;
+              print('🎨 [Cliente Chat] buildWhen: ${current.runtimeType} -> shouldBuild: $shouldBuild');
+              return shouldBuild;
             },
             builder: (context, state) {
+              print('🎨 [Cliente Chat] UI recibió estado: ${state.runtimeType}');
+
               if (state is AppointmentsLoading) {
+                print('🎨 [Cliente Chat] Mostrando loading...');
                 return const Center(child: CircularProgressIndicator());
               }
 
               if (state is ChatMessagesLoaded) {
+                print('💬 [Cliente Chat] ChatMessagesLoaded con ${state.messages.length} mensajes');
                 if (state.messages.isEmpty) {
+                  print('🎨 [Cliente Chat] Lista vacía, mostrando mensaje...');
                   return const Center(
-                    child: Text('No hay mensajes aún. Inicia la conversación.'),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'No hay mensajes aún',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Inicia la conversación con el taller',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ],
+                    ),
                   );
                 }
 
+                print('🎨 [Cliente Chat] Mostrando lista de ${state.messages.length} mensajes');
                 return ListView.builder(
                   reverse: true,
                   padding: const EdgeInsets.all(16),
@@ -419,6 +479,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
                 );
               }
 
+              print('🎨 [Cliente Chat] Estado no reconocido, mostrando mensaje por defecto');
               return const Center(child: Text('No hay mensajes'));
             },
           ),
@@ -429,10 +490,17 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
   }
 
   Widget _buildMessageBubble(ChatMessageModel message) {
+    // Obtener el usuario autenticado actual
+    final currentUser = context.read<AuthBloc>().state.user;
+    
+    // Determinar si el mensaje fue enviado por el usuario actual
+    final isCurrentUser = currentUser != null && message.senderId == currentUser.id;
+    
+    // Determinar si el mensaje es de un cliente (para el color)
     final isCustomer = message.senderRole == SenderRole.customer;
 
     return Align(
-      alignment: isCustomer ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -440,24 +508,36 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen>
           maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
         decoration: BoxDecoration(
-          color: isCustomer ? Colors.blue : Colors.grey[300],
+          // Cliente (Usuario Vehículo) = Verde, Taller (Mecánico) = Azul
+          color: isCustomer ? Colors.green[600] : Colors.blue[700],
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Etiqueta de remitente para mayor claridad
+            Text(
+              isCurrentUser ? 'Tú' : (isCustomer ? 'Cliente' : 'Taller'),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ),
+            const SizedBox(height: 4),
             Text(
               message.message,
-              style: TextStyle(
-                color: isCustomer ? Colors.white : Colors.black,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               DateFormat('HH:mm').format(message.createdAt),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 10,
-                color: isCustomer ? Colors.white70 : Colors.black54,
+                color: Colors.white70,
               ),
             ),
           ],

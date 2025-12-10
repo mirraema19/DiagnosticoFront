@@ -40,7 +40,7 @@ class WorkshopRemoteDataSource {
       if (priceRange != null) queryParams['priceRange'] = priceRange;
       if (specialtyType != null) queryParams['specialtyType'] = specialtyType;
 
-      final response = await _apiClient.dio.get('/search/nearby', queryParameters: queryParams);
+      final response = await _apiClient.dio.get('/workshops/workshops/search/nearby', queryParameters: queryParams);
 
       final List<dynamic> workshopListJson = response.data;
       return workshopListJson.map((json) => Workshop.fromJson(json)).toList();
@@ -56,7 +56,7 @@ class WorkshopRemoteDataSource {
   // GET /:id (Detalle)
   Future<Workshop> getWorkshopById(String id) async {
     try {
-      final response = await _apiClient.dio.get('/$id');
+      final response = await _apiClient.dio.get('/workshops/workshops/$id');
       return Workshop.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception('Error al obtener detalle: ${e.message}');
@@ -81,7 +81,7 @@ class WorkshopRemoteDataSource {
       }
 
       // GET a la raíz '/'
-      final response = await _apiClient.dio.get('/', queryParameters: queryParams);
+      final response = await _apiClient.dio.get('/workshops/workshops', queryParameters: queryParams);
       
       final data = response.data;
       List<dynamic> list = [];
@@ -101,7 +101,7 @@ class WorkshopRemoteDataSource {
   // GET /me/workshops
   Future<List<Workshop>> getMyWorkshops() async {
      try {
-      final response = await _apiClient.dio.get('/me/workshops');
+      final response = await _apiClient.dio.get('/workshops/workshops/me/workshops');
       final List<dynamic> list = response.data['workshops'];
       return list.map((json) => Workshop.fromJson(json)).toList();
     } on DioException catch (e) {
@@ -113,7 +113,7 @@ class WorkshopRemoteDataSource {
   // POST / (Crear Taller)
   Future<void> createWorkshop(Map<String, dynamic> data) async {
     try {
-      await _apiClient.dio.post('', data: data);
+      await _apiClient.dio.post('/workshops/workshops', data: data);
     } on DioException catch (e) {
       final responseData = e.response?.data;
       final msg = (responseData is Map<String, dynamic> && responseData['message'] != null)
@@ -126,7 +126,7 @@ class WorkshopRemoteDataSource {
   // PATCH /:id (Actualizar Taller)
   Future<void> updateWorkshop(String id, Map<String, dynamic> data) async {
     try {
-      await _apiClient.dio.patch('/$id', data: data);
+      await _apiClient.dio.patch('/workshops/workshops/$id', data: data);
     } on DioException catch (e) {
       throw Exception('Error al actualizar taller: ${e.message}');
     }
@@ -135,7 +135,7 @@ class WorkshopRemoteDataSource {
   // DELETE /:id (Eliminar Taller)
   Future<void> deleteWorkshop(String id) async {
     try {
-      await _apiClient.dio.delete('/$id');
+      await _apiClient.dio.delete('/workshops/workshops/$id');
     } on DioException catch (e) {
       throw Exception('Error al eliminar taller: ${e.message}');
     }
@@ -146,7 +146,7 @@ class WorkshopRemoteDataSource {
   // GET /admin/pending
   Future<List<Workshop>> getPendingWorkshops() async {
     try {
-      final response = await _apiClient.dio.get('/admin/pending');
+      final response = await _apiClient.dio.get('/workshops/workshops/admin/pending');
       final List<dynamic> list = response.data['workshops'];
       return list.map((json) => Workshop.fromJson(json)).toList();
     } on DioException catch (e) {
@@ -158,7 +158,7 @@ class WorkshopRemoteDataSource {
   // PATCH /:id/approve
   Future<void> approveWorkshop(String id) async {
     try {
-      await _apiClient.dio.patch('/$id/approve');
+      await _apiClient.dio.patch('/workshops/workshops/$id/approve');
     } on DioException catch (e) {
       throw Exception('Error al aprobar taller: ${e.message}');
     }
@@ -167,7 +167,7 @@ class WorkshopRemoteDataSource {
   // PATCH /:id/reject
   Future<void> rejectWorkshop(String id) async {
     try {
-      await _apiClient.dio.patch('/$id/reject');
+      await _apiClient.dio.patch('/workshops/workshops/$id/reject');
     } on DioException catch (e) {
       throw Exception('Error al rechazar taller: ${e.message}');
     }
@@ -180,7 +180,7 @@ class WorkshopRemoteDataSource {
   // GET /:id/schedule (Obtener horarios)
   Future<List<WorkshopSchedule>> getSchedule(String workshopId) async {
     try {
-      final response = await _apiClient.dio.get('/$workshopId/schedule');
+      final response = await _apiClient.dio.get('/workshops/workshops/$workshopId/schedule');
       final List<dynamic> list = response.data;
       return list.map((json) => WorkshopSchedule.fromJson(json)).toList();
     } on DioException catch (e) {
@@ -192,7 +192,7 @@ class WorkshopRemoteDataSource {
   // PUT /:id/schedule (Configurar horarios)
   Future<void> setSchedule(String workshopId, List<Map<String, dynamic>> schedule) async {
     try {
-      await _apiClient.dio.put('/$workshopId/schedule', data: schedule);
+      await _apiClient.dio.put('/workshops/workshops/$workshopId/schedule', data: schedule);
     } on DioException catch (e) {
       throw Exception('Error al guardar horario: ${e.message}');
     }
@@ -201,7 +201,7 @@ class WorkshopRemoteDataSource {
   // GET /:id/specialties (Obtener especialidades)
   Future<List<WorkshopSpecialty>> getSpecialties(String workshopId) async {
     try {
-      final response = await _apiClient.dio.get('/$workshopId/specialties');
+      final response = await _apiClient.dio.get('/workshops/workshops/$workshopId/specialties');
       final List<dynamic> list = response.data;
       return list.map((json) => WorkshopSpecialty.fromJson(json)).toList();
     } on DioException catch (e) {
@@ -213,7 +213,7 @@ class WorkshopRemoteDataSource {
   // POST /:id/specialties (Agregar especialidad)
   Future<void> addSpecialty(String workshopId, Map<String, dynamic> data) async {
     try {
-      await _apiClient.dio.post('/$workshopId/specialties', data: data);
+      await _apiClient.dio.post('/workshops/workshops/$workshopId/specialties', data: data);
     } on DioException catch (e) {
       throw Exception('Error al agregar especialidad: ${e.message}');
     }
@@ -222,7 +222,7 @@ class WorkshopRemoteDataSource {
   // DELETE /:id/specialties/:specialtyId (Eliminar especialidad)
   Future<void> deleteSpecialty(String workshopId, String specialtyId) async {
     try {
-      await _apiClient.dio.delete('/$workshopId/specialties/$specialtyId');
+      await _apiClient.dio.delete('/workshops/workshops/$workshopId/specialties/$specialtyId');
     } on DioException catch (e) {
       throw Exception('Error al eliminar especialidad: ${e.message}');
     }
@@ -233,7 +233,7 @@ class WorkshopRemoteDataSource {
   // GET /:id/reviews (Obtener reseñas)
   Future<List<Review>> getReviews(String workshopId) async {
     try {
-      final response = await _apiClient.dio.get('/$workshopId/reviews');
+      final response = await _apiClient.dio.get('/workshops/workshops/$workshopId/reviews');
       // La respuesta es paginada { reviews: [], ... }
       final List<dynamic> list = response.data['reviews'];
       return list.map((json) => Review.fromJson(json)).toList();
@@ -246,7 +246,7 @@ class WorkshopRemoteDataSource {
   // GET /:id/reviews/statistics
   Future<Map<String, dynamic>> getReviewStatistics(String workshopId) async {
     try {
-      final response = await _apiClient.dio.get('/$workshopId/reviews/statistics');
+      final response = await _apiClient.dio.get('/workshops/workshops/$workshopId/reviews/statistics');
       return response.data;
     } on DioException catch (e) {
       throw Exception('Error al obtener estadísticas: ${e.message}');
@@ -256,7 +256,7 @@ class WorkshopRemoteDataSource {
   // POST crear review
   Future<void> createReview(String workshopId, Map<String, dynamic> data) async {
     try {
-      await _apiClient.dio.post('/$workshopId/reviews', data: data);
+      await _apiClient.dio.post('/workshops/workshops/$workshopId/reviews', data: data);
     } on DioException catch (e) {
       final responseData = e.response?.data;
       final msg = (responseData is Map<String, dynamic> && responseData['message'] != null)
@@ -268,7 +268,7 @@ class WorkshopRemoteDataSource {
 
   Future<void> updateReview(String workshopId, String reviewId, Map<String, dynamic> data) async {
     try {
-      await _apiClient.dio.patch('/$workshopId/reviews/$reviewId', data: data);
+      await _apiClient.dio.patch('/workshops/workshops/$workshopId/reviews/$reviewId', data: data);
     } on DioException catch (e) {
       throw Exception('Error al actualizar reseña: ${e.message}');
     }
@@ -276,7 +276,7 @@ class WorkshopRemoteDataSource {
 
   Future<void> replyToReview(String workshopId, String reviewId, String response) async {
     try {
-      await _apiClient.dio.post('/$workshopId/reviews/$reviewId/response', data: {'response': response});
+      await _apiClient.dio.post('/workshops/workshops/$workshopId/reviews/$reviewId/response', data: {'response': response});
     } on DioException catch (e) {
       throw Exception('Error al responder reseña: ${e.message}');
     }
@@ -284,7 +284,7 @@ class WorkshopRemoteDataSource {
 
   Future<void> deleteReview(String workshopId, String reviewId) async {
     try {
-      await _apiClient.dio.delete('/$workshopId/reviews/$reviewId');
+      await _apiClient.dio.delete('/workshops/workshops/$workshopId/reviews/$reviewId');
     } on DioException catch (e) {
       throw Exception('Error al eliminar reseña: ${e.message}');
     }

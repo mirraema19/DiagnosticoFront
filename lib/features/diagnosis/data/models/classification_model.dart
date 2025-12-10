@@ -71,18 +71,18 @@ class ClassificationModel extends Equatable {
   factory ClassificationModel.fromJson(Map<String, dynamic> json) {
     return ClassificationModel(
       id: json['id'],
-      sessionId: json['sessionId'],
+      sessionId: json['sessionId'], // Backend uses camelCase
       category: ProblemCategory.values.firstWhere(
         (e) => e.value == json['category'],
         orElse: () => ProblemCategory.OTHER,
       ),
       subcategory: json['subcategory'],
-      confidenceScore: (json['confidenceScore'] as num).toDouble(),
+      confidenceScore: (json['confidenceScore'] as num).toDouble(), // Backend uses camelCase
       symptoms: (json['symptoms'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      createdAt: DateTime.parse(json['createdAt']),
+      createdAt: DateTime.parse(json['createdAt']), // Backend uses camelCase
     );
   }
 

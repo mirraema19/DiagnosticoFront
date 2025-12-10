@@ -69,8 +69,8 @@ class UrgencyModel extends Equatable {
         orElse: () => UrgencyLevel.MEDIUM,
       ),
       description: json['description'],
-      safeToDriver: json['safeToDriver'] ?? false,
-      maxMileageRecommended: json['maxMileageRecommended'],
+      safeToDriver: json['safeToDriver'] ?? false, // Backend uses camelCase
+      maxMileageRecommended: json['maxMileageRecommended'], // Backend uses camelCase
     );
   }
 

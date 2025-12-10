@@ -45,6 +45,7 @@ import 'package:proyecto/features/appointments/presentation/views/add_reminder_s
 import 'package:proyecto/features/workshops/data/models/workshop_model.dart';
 import 'package:proyecto/features/workshops/presentation/views/workshop_search_screen.dart';
 import 'package:proyecto/features/workshops/presentation/views/workshop_detail_screen.dart';
+import 'package:proyecto/features/workshops/presentation/views/create_review_screen.dart';
 
 // Diagnosis
 import 'package:proyecto/features/diagnosis/presentation/views/diagnosis_chat_screen.dart';
@@ -200,6 +201,19 @@ class AppRouter {
         builder: (context, state) {
           final workshop = state.extra as Workshop;
           return WorkshopDetailScreen(workshop: workshop);
+        },
+      ),
+      GoRoute(
+        path: '/workshops/:workshopId/review',
+        name: 'createReview',
+        builder: (context, state) {
+          final workshopId = state.pathParameters['workshopId']!;
+          final extra = state.extra as Map<String, dynamic>?;
+
+          return CreateReviewScreen(
+            workshopId: workshopId,
+            appointmentId: extra?['appointmentId'], // Pasamos el appointmentId si viene
+          );
         },
       ),
 

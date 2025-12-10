@@ -5,6 +5,8 @@ import 'package:proyecto/features/diagnosis/data/models/chat_response_model.dart
 import 'package:proyecto/features/diagnosis/data/models/classification_model.dart';
 import 'package:proyecto/features/diagnosis/data/models/urgency_model.dart';
 import 'package:proyecto/features/diagnosis/data/models/cost_estimate_model.dart';
+import 'package:proyecto/features/diagnosis/data/models/workshop_recommendation_model.dart';
+
 
 class DiagnosisRemoteDataSource {
   final Dio dio;
@@ -18,15 +20,33 @@ class DiagnosisRemoteDataSource {
     required String initialMessage,
   }) async {
     try {
+      print('🔵 DiagnosisRemoteDataSource: Creating session with payload:');
+      print('   vehicleId: $vehicleId');
+      print('   initialMessage: $initialMessage');
+
+      // Backend usa camelCase, NO snake_case
+      final data = {
+        'vehicleId': vehicleId,  // Backend espera camelCase
+        'initialMessage': initialMessage,  // Backend espera camelCase
+      };
+
+      print('   Full payload: $data');
+
       final response = await dio.post(
         '$baseUrl/sessions',
-        data: {
-          'vehicleId': vehicleId,
-          'initialMessage': initialMessage,
-        },
+        data: data,
       );
+
+      print('✅ DiagnosisRemoteDataSource: Session created successfully');
+      print('   Response: ${response.data}');
+
+      // Backend retorna ChatResponse con userMessage y assistantMessage
       return ChatResponseModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      print('❌ DiagnosisRemoteDataSource: Error creating session');
+      print('   Status code: ${e.response?.statusCode}');
+      print('   Response data: ${e.response?.data}');
+      print('   Error message: ${e.message}');
       throw Exception('Error al crear sesión: ${e.message}');
     }
   }
@@ -134,6 +154,31 @@ class DiagnosisRemoteDataSource {
       return response.data;
     } on DioException catch (e) {
       throw Exception('Error en health check: ${e.message}');
+    }
+  }
+
+  // ==================== RECOMMENDATIONS ====================
+
+  /// GET /sessions/{sessionId}/recommendations - Obtener talleres recomendados
+  Future<List<WorkshopRecommendationModel>> getRecommendations({
+    required String sessionId,
+    int limit = 3,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{
+        'limit': limit,
+      };
+
+      final response = await dio.get(
+        '$baseUrl/sessions/$sessionId/recommendations',
+        queryParameters: queryParams,
+      );
+
+      return (response.data as List)
+          .map((json) => WorkshopRecommendationModel.fromJson(json))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception('Error al obtener recomendaciones: ${e.message}');
     }
   }
 }

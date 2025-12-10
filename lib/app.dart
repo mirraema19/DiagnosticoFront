@@ -36,7 +36,6 @@ class MyApp extends StatelessWidget {
           BlocProvider(create: (context) => AdminWorkshopBloc()..add(LoadMyWorkshops())),
           BlocProvider(create: (context) => DiagnosisBloc(
             repository: sl<DiagnosisRepository>(),
-            workshopRepository: sl<WorkshopRepository>(),
           )),
         ],
         child: BlocListener<AuthBloc, AuthState>(

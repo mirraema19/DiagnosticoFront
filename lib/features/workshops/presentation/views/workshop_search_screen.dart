@@ -114,7 +114,8 @@ class _WorkshopSearchScreenState extends State<WorkshopSearchScreen> {
                   return const Center(child: Text('No se encontraron talleres.'));
                 }
 
-                final workshops = snapshot.data!;
+                // Invertir lista para mostrar talleres nuevos primero
+                final workshops = snapshot.data!.reversed.toList();
                 return ListView.builder(
                   padding: const EdgeInsets.only(bottom: 16),
                   itemCount: workshops.length,

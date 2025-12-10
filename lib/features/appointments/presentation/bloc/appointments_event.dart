@@ -56,6 +56,15 @@ class CancelAppointment extends AppointmentsEvent {
   List<Object> get props => [id, reason];
 }
 
+class ConfirmAppointment extends AppointmentsEvent {
+  final String id;
+
+  const ConfirmAppointment(this.id);
+
+  @override
+  List<Object> get props => [id];
+}
+
 class CompleteAppointment extends AppointmentsEvent {
   final String id;
   final double finalCost;

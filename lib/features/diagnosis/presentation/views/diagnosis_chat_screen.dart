@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:proyecto/features/diagnosis/presentation/bloc/diagnosis_bloc.dart';
 import 'package:proyecto/features/diagnosis/presentation/views/widgets/chat_message_bubble.dart';
-import 'package:proyecto/features/diagnosis/presentation/views/widgets/recommended_workshops_card.dart';
-import 'package:proyecto/features/diagnosis/presentation/views/widgets/cost_estimate_card.dart';
-import 'package:proyecto/features/diagnosis/presentation/views/widgets/urgency_indicator.dart';
-import 'package:proyecto/features/diagnosis/presentation/views/widgets/classification_card.dart';
+import 'package:proyecto/features/diagnosis/presentation/widgets/workshop_recommendations_widget.dart';
+import 'package:proyecto/features/diagnosis/presentation/widgets/diagnosis_result_card.dart';
 import 'package:proyecto/features/diagnosis/presentation/views/diagnosis_history_screen.dart';
 import 'package:proyecto/features/garaje/presentation/bloc/garage_bloc.dart';
 import 'package:proyecto/features/garaje/presentation/data/models/vehicle_model.dart';
@@ -73,6 +71,7 @@ class _DiagnosisChatScreenState extends State<DiagnosisChatScreen> {
     }
 
     print('DiagnosisChatScreen: Starting new session for vehicle ${_selectedVehicle!.id}');
+    
     context.read<DiagnosisBloc>().add(CreateDiagnosisSession(
           vehicleId: _selectedVehicle!.id,
           initialMessage: _messageController.text.trim(),
@@ -119,16 +118,11 @@ class _DiagnosisChatScreenState extends State<DiagnosisChatScreen> {
       return;
     }
 
-    // Si ya tenemos clasificación, recargar talleres con la categoría correcta
-    final category = diagnosisState.classification!.category;
-    print('DiagnosisChatScreen: Searching workshops for category: $category (from backend classification)');
-
-    // TODO: Obtener ubicación real
-    context.read<DiagnosisBloc>().add(LoadRecommendedWorkshops(
-      category: category,
-      latitude: 0.0,
-      longitude: 0.0,
-    ));
+    // Si ya tenemos clasificación, recargar talleres desde el backend ML
+    print('DiagnosisChatScreen: Reloading recommendations from backend ML');
+    context.read<DiagnosisBloc>().add(
+      LoadRecommendations(sessionId: diagnosisState.session.id),
+    );
   }
 
   @override
@@ -270,9 +264,7 @@ class _DiagnosisChatScreenState extends State<DiagnosisChatScreen> {
             controller: _scrollController,
             padding: const EdgeInsets.symmetric(vertical: 16),
             itemCount: state.messages.length +
-                (state.classification != null ? 1 : 0) +
-                (state.urgency != null ? 1 : 0) +
-                (state.costEstimate != null ? 1 : 0) +
+                1 + // Diagnosis Result Card (classification, urgency, cost)
                 (state.recommendedWorkshops != null && state.recommendedWorkshops!.isNotEmpty ? 1 : 0) +
                 (state.suggestedQuestions.isNotEmpty ? 1 : 0) +
                 1, // Workshop search button
@@ -285,29 +277,28 @@ class _DiagnosisChatScreenState extends State<DiagnosisChatScreen> {
               }
               currentIndex -= state.messages.length;
 
-              // Classification Card
-              if (state.classification != null && currentIndex == 0) {
-                return ClassificationCard(classification: state.classification!);
+              // Diagnosis Result Card (combines classification, urgency, cost)
+              if (currentIndex == 0) {
+                return DiagnosisResultCard(
+                  classification: state.classification,
+                  urgency: state.urgency,
+                  costEstimate: state.costEstimate,
+                  recommendedWorkshops: state.recommendedWorkshops,
+                );
               }
-              if (state.classification != null) currentIndex--;
+              currentIndex--;
 
-              // Urgency Indicator
-              if (state.urgency != null && currentIndex == 0) {
-                return UrgencyIndicator(urgency: state.urgency!);
-              }
-              if (state.urgency != null) currentIndex--;
-
-              // Cost Estimate
-              if (state.costEstimate != null && currentIndex == 0) {
-                return CostEstimateCard(costEstimate: state.costEstimate!);
-              }
-              if (state.costEstimate != null) currentIndex--;
-
-              // Recommended Workshops
+              // Recommended Workshops Widget
               if (state.recommendedWorkshops != null &&
                   state.recommendedWorkshops!.isNotEmpty &&
                   currentIndex == 0) {
-                return RecommendedWorkshopsCard(workshops: state.recommendedWorkshops!);
+                return WorkshopRecommendationsWidget(
+                  recommendations: state.recommendedWorkshops!,
+                  onViewAllWorkshops: () {
+                    // TODO: Navigate to workshops list
+                    print('View all workshops');
+                  },
+                );
               }
               if (state.recommendedWorkshops != null && state.recommendedWorkshops!.isNotEmpty) {
                 currentIndex--;
@@ -374,8 +365,8 @@ class _DiagnosisChatScreenState extends State<DiagnosisChatScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ElevatedButton.icon(
         onPressed: _searchWorkshops,
-        icon: const Icon(Icons.search),
-        label: const Text('Buscar Talleres Recomendados'),
+        icon: const Icon(Icons.analytics_outlined),
+        label: const Text('Resultado del Diagnóstico'),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           backgroundColor: Colors.blue,

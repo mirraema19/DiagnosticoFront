@@ -57,6 +57,15 @@ class AppointmentCancelled extends AppointmentsState {
   List<Object> get props => [appointment];
 }
 
+class AppointmentConfirmed extends AppointmentsState {
+  final AppointmentModel appointment;
+
+  const AppointmentConfirmed(this.appointment);
+
+  @override
+  List<Object> get props => [appointment];
+}
+
 class AppointmentCompleted extends AppointmentsState {
   final AppointmentModel appointment;
 
